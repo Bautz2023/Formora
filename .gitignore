@@ -1,0 +1,5 @@
+node_modules/
+_site/
+tests/cloud_test.html
+tests/shots/
+.DS_Store

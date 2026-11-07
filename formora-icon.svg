@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16201E"/><stop offset=".55" stop-color="#0C0F11"/><stop offset="1" stop-color="#071A16"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#36D6AC" stop-opacity=".42"/><stop offset="1" stop-color="#36D6AC" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7DF2D2"/><stop offset=".5" stop-color="#36D6AC"/><stop offset="1" stop-color="#119A79"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E9FFF8"/><stop offset="1" stop-color="#8FB8AD"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="230" fill="url(#glow)"/>
+  <g transform="rotate(-35 256 256)">
+    <!-- Stange -->
+    <rect x="86" y="242" width="340" height="28" rx="14" fill="url(#bar)"/>
+    <!-- Griff-Rändelung -->
+    <g stroke="#0C0F11" stroke-opacity=".35" stroke-width="4" stroke-linecap="round">
+      <path d="M214 248v16M230 248v16M246 248v16M262 248v16M278 248v16M294 248v16"/>
+    </g>
+    <!-- linke Scheiben -->
+    <rect x="118" y="160" width="46" height="192" rx="16" fill="url(#metal)"/>
+    <rect x="80" y="190" width="40" height="132" rx="14" fill="url(#metal)"/>
+    <rect x="164" y="232" width="14" height="48" rx="5" fill="#CFEFE6"/>
+    <!-- rechte Scheiben -->
+    <rect x="348" y="160" width="46" height="192" rx="16" fill="url(#metal)"/>
+    <rect x="392" y="190" width="40" height="132" rx="14" fill="url(#metal)"/>
+    <rect x="334" y="232" width="14" height="48" rx="5" fill="#CFEFE6"/>
+    <!-- Glanzkanten -->
+    <rect x="126" y="170" width="10" height="90" rx="5" fill="url(#shine)"/>
+    <rect x="356" y="170" width="10" height="90" rx="5" fill="url(#shine)"/>
+    <rect x="87" y="198" width="8" height="60" rx="4" fill="url(#shine)"/>
+    <rect x="399" y="198" width="8" height="60" rx="4" fill="url(#shine)"/>
+  </g>
+  <!-- Formora-Punkt -->
+  <circle cx="404" cy="404" r="22" fill="#36D6AC"/>
+  <circle cx="404" cy="404" r="22" fill="none" stroke="#0C0F11" stroke-width="6"/>
+</svg>
