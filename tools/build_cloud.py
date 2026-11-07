@@ -146,7 +146,8 @@ const gate=(mode,msg)=>{
 };
 const ungate=()=>{$("authGate").hidden=true;document.body.classList.remove("gated")};
 const agBusy=(b,txt)=>{$("authGate").querySelectorAll("button").forEach(x=>x.disabled=b);if(txt)$("agMsg").textContent=txt,$("agMsg").hidden=false};
-const deErr=e=>{const m=(e&&e.message||"")+"";
+const deErr=e=>{const m=(e&&e.message||"")+"",code=(e&&e.code||"")+"";
+  if(/over_email_send_rate_limit/.test(code)||/email rate limit/i.test(m))return "Gerade können keine Bestätigungs-Mails verschickt werden – das kostenlose Mail-Kontingent ist für diese Stunde aufgebraucht. Bitte in etwa einer Stunde noch einmal versuchen.";
   if(/Invalid login/i.test(m))return "E-Mail oder Passwort stimmt nicht.";
   if(/not confirmed/i.test(m))return "Bitte bestätige zuerst deine E-Mail – der Link ist in deinem Postfach.";
   if(/already registered|already exists/i.test(m))return "Für diese E-Mail gibt es schon ein Konto – melde dich an.";

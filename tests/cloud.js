@@ -19,7 +19,7 @@ async function backend(route){
   const req=route.request(),u=new URL(req.url()),p=u.pathname,m=req.method();
   if(m==='OPTIONS')return route.fulfill({status:200,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'}});
   const body=()=>{try{return JSON.parse(req.postData()||'{}')}catch(e){return {}}};
-  if(p==='/auth/v1/signup'){const b=body();if(users.has(b.email))return J(route,422,{code:422,error_code:'user_already_exists',msg:'User already registered'});
+  if(p==='/auth/v1/signup'){const b=body();if(b.email==='limit@test.de')return J(route,429,{code:429,error_code:'over_email_send_rate_limit',msg:'email rate limit exceeded'});if(users.has(b.email))return J(route,422,{code:422,error_code:'user_already_exists',msg:'User already registered'});
     const usr={id:'00000000-0000-4000-8000-00000000000'+(++n),email:b.email,pw:b.password};users.set(b.email,usr);return J(route,200,sess(usr))}
   if(p==='/auth/v1/token'){const g=u.searchParams.get('grant_type'),b=body();
     if(g==='password'){const usr=users.get(b.email);if(!usr||usr.pw!==b.password)return J(route,400,{code:400,error_code:'invalid_credentials',msg:'Invalid login credentials'});return J(route,200,sess(usr))}
@@ -77,6 +77,9 @@ async function backend(route){
   await page.check('#agShow');ok((await page.getAttribute('#agPw','type'))==='text'&&(await page.getAttribute('#agPw2','type'))==='text','Passwort anzeigen');await page.uncheck('#agShow');
   await page.fill('#agEmail','robin@test.de');await page.fill('#agPw','geheim123');await page.fill('#agPw2','anders123');await page.click('#agSignup');
   ok((await page.textContent('#agMsg')).includes('stimmen nicht'),'Passwörter müssen übereinstimmen');
+  await page.fill('#agEmail','limit@test.de');await page.fill('#agPw2','geheim123');await page.click('#agSignup');await page.waitForTimeout(400);
+  ok((await page.textContent('#agMsg')).includes('Mail-Kontingent'),'Mail-Limit von Supabase: verständliche Meldung');
+  await page.fill('#agEmail','robin@test.de');
   await page.fill('#agPw2','geheim123');await page.click('#agSignup');
   await page.waitForSelector('#authGate',{state:'hidden'});
   ok(await page.isVisible('#welcome'),'Nach Registrierung: App mit Willkommen/Plan-Assistent');
