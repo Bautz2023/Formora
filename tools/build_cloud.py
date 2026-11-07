@@ -35,6 +35,7 @@ const b64u={enc:b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g
   dec:s=>Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")+"===".slice((s.length+3)%4)),c=>c.charCodeAt(0))};
 const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
 const hex=n=>[...rnd(n)].map(x=>x.toString(16).padStart(2,"0")).join("");
+const newDocId=()=>Date.now().toString(36)+hex(5);
 
 /* Datenbank: Cache im Speicher, Schreiben direkt nach Supabase (Tabelle docs) */
 function cloudDb(uid,rows){
@@ -66,12 +67,24 @@ function cloudDb(uid,rows){
   const colRef=c=>({path:c,doc:id=>docRef(c+"/"+(id||newId())),
     add:async v=>{const r=docRef(c+"/"+newId());await r.set(v);return r},
     onSnapshot:(fn,err)=>sub(c,()=>{try{const o=load(c);fn({docs:Object.keys(o).map(k=>docSnap(k,o[k])),size:Object.keys(o).length})}catch(e){err&&err(e)}})});
+  /* Import: viele Dokumente in wenigen Anfragen (200 pro Anfrage) */
+  async function setMany(list,progress){
+    const seen=new Map();list.forEach(r=>seen.set(r.col+"\u0000"+r.id,r));const all=[...seen.values()];
+    for(let i=0;i<all.length;i+=200){
+      const part=all.slice(i,i+200);
+      const {error}=await SB.from("docs").upsert(part.map(r=>({user_id:uid,col:r.col,id:r.id,data:clone(r.data),updated_at:new Date().toISOString()})),{onConflict:"user_id,col,id"});
+      if(error)throw fail(error);
+      const cs=new Set();part.forEach(r=>{load(r.col)[r.id]=clone(r.data);cs.add(r.col)});cs.forEach(fire);
+      progress&&progress(Math.min(i+200,all.length));
+    }
+    return all.length;
+  }
   /* Andere Geräte: beim Zurückkehren in die App neu laden */
   async function refresh(){
     try{const rows=await cloudLoadAll(uid);const seen=new Set([...Object.keys(cache)]);
       Object.keys(cache).forEach(c=>cache[c]={});rows.forEach(put);rows.forEach(r=>seen.add(r.col));seen.forEach(fire)}catch(e){}
   }
-  return {collection:colRef,doc:docRef,refresh,has:c=>Object.keys(load(c)).length>0};
+  return {collection:colRef,doc:docRef,refresh,setMany,has:c=>Object.keys(load(c)).length>0};
 }
 async function cloudLoadAll(uid){
   const out=[];
@@ -129,6 +142,7 @@ const gate=(mode,msg)=>{
   const g=$("authGate");g.hidden=false;document.body.classList.add("gated");
   g.querySelectorAll("[data-gm]").forEach(x=>x.hidden=!x.dataset.gm.split(" ").includes(mode));
   $("agMsg").textContent=msg||"";$("agMsg").hidden=!msg;g.dataset.mode=mode;
+  $("agPw").autocomplete=mode==="signup"?"new-password":"current-password";
 };
 const ungate=()=>{$("authGate").hidden=true;document.body.classList.remove("gated")};
 const agBusy=(b,txt)=>{$("authGate").querySelectorAll("button").forEach(x=>x.disabled=b);if(txt)$("agMsg").textContent=txt,$("agMsg").hidden=false};
@@ -145,6 +159,9 @@ function cloudStart(){
   return new Promise(resolve=>{
     if(!window.supabase||!SB_URL||!SB_KEY){gate("setup");return resolve(null)}
     const RECOVERY=/type=recovery/.test(location.hash);
+    const lm=/error_code=([a-z_]+)/.exec(location.hash);
+    const LINKERR=lm?(lm[1]==="otp_expired"?"Der Link ist abgelaufen oder wurde schon benutzt. Melde dich an – oder fordere unter „Passwort vergessen?“ einen neuen Link an.":"Der Link hat nicht funktioniert. Bitte melde dich an."):"";
+    if(lm){try{history.replaceState(null,"",location.pathname)}catch(e){}}
     SB=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     let done=false,unlocking=false;
     const finish=async user=>{
@@ -201,13 +218,14 @@ function cloudStart(){
     };
     $("authGate").querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>gate(b.dataset.goto));
     $("agLogout").onclick=cloudLogout;
+    ["agShow","agShow2"].forEach(i=>$(i).onchange=e=>{const t=e.target.checked?"text":"password";["agPw","agPw2","agPwNew"].forEach(x=>$(x).type=t);$("agShow").checked=$("agShow2").checked=e.target.checked});
     SB.auth.onAuthStateChange((ev,session)=>{
       if(ev==="PASSWORD_RECOVERY"){gate("reset");return}
       if(ev==="SIGNED_OUT"&&done){location.reload()}
     });
     SB.auth.getSession().then(({data})=>{
       if(RECOVERY){gate("reset");return}
-      const u=data&&data.session&&data.session.user;u?finish(u):gate("login");
+      const u=data&&data.session&&data.session.user;u?finish(u):gate("login",LINKERR);
     }).catch(()=>gate("login"));
     /* Sperren, wenn die App länger als 5 Minuten im Hintergrund war */
     let hiddenAt=0;
@@ -262,6 +280,7 @@ GATE_HTML = '''  <div id="authGate" class="gate" hidden>
         <label class="f">E-Mail<input id="agEmail" type="email" autocomplete="email" inputmode="email" placeholder="du@beispiel.de"></label>
         <label class="f">Passwort<input id="agPw" type="password" autocomplete="current-password" placeholder="mindestens 8 Zeichen"></label>
         <label class="f" data-gm="signup">Passwort wiederholen<input id="agPw2" type="password" autocomplete="new-password"></label>
+        <label class="ckrow"><input type="checkbox" id="agShow"> Passwort anzeigen</label>
         <button class="btn" id="agLogin" data-gm="login">Anmelden</button>
         <button class="btn" id="agSignup" data-gm="signup">Konto erstellen</button>
         <button class="btn ghost" data-gm="login" data-goto="signup">Neu hier? Konto erstellen</button>
@@ -270,6 +289,7 @@ GATE_HTML = '''  <div id="authGate" class="gate" hidden>
       </div>
       <div data-gm="reset" class="gate-form">
         <label class="f">Neues Passwort<input id="agPwNew" type="password" autocomplete="new-password" placeholder="mindestens 8 Zeichen"></label>
+        <label class="ckrow"><input type="checkbox" id="agShow2"> Passwort anzeigen</label>
         <button class="btn" id="agNewPw">Passwort speichern</button>
       </div>
       <div data-gm="lock" class="gate-form">
@@ -343,6 +363,21 @@ R('''Der Coach-Check braucht Claude – öffne Formora in der Claude-App.''', LO
 # Datenschutz-Hinweis
 R('''<div class="notice warn"><b>Datenschutz:</b> Wer diesen Link hat, sieht deine Daten – nicht teilen.</div>''',
   '''<div class="notice"><b>Deine Daten:</b> Sie liegen in deinem eigenen Konto – andere Nutzer können sie nicht sehen. Du kannst Formora auf jedem Gerät nutzen – einfach anmelden. Zusätzlich kannst du ab und zu „Export als JSON“ sichern.</div>''')
+
+# Import: Stapel statt Einzelanfragen
+R('''    for(const col of COLS)for(const s of (impPlan[col]||[])){
+      const id=col==="body"||col==="daily"?s.o.date:col==="checkins"?monday(s.o.date):s.id;
+      if(id)await db.doc(col+"/"+id).set(s.o);else await db.collection(col).add(s.o);
+      done++;if(done%10===0)$("impGo").textContent=done+" / "+nNew+" …"}
+''',
+  '''    const list=[];
+    for(const col of COLS)for(const s of (impPlan[col]||[])){
+      const id=col==="body"||col==="daily"?s.o.date:col==="checkins"?monday(s.o.date):s.id||newDocId();
+      list.push({col,id,data:s.o})}
+    done=await db.setMany(list,n=>{$("impGo").textContent=n+" / "+list.length+" …"});
+''')
+R('''c==="rate_limited"?"Zu viele Anfragen – kurz warten":''',
+  '''c==="rate_limited"?"Zu viele Anfragen – kurz warten":c==="cloud"?"Keine Verbindung – nicht gespeichert. Bitte nochmal versuchen.":''')
 
 # Konto-Karte vor den Einstellungen
 R('''    <details class="card" id="setCard">''', ACCT_HTML + '''    <details class="card" id="setCard">''')

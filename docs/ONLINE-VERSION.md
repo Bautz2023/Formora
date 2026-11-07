@@ -63,3 +63,13 @@ Fotos (Formupdate, Geräte-Fotos) liegen in der Claude-Version und kommen nicht 
 - Die Tabelle `docs` hat Row Level Security. Jede Abfrage sieht nur Zeilen mit `user_id = auth.uid()`. Nicht angemeldete Zugriffe (`anon`) haben keine Rechte.
 - Fotos liegen im privaten Bucket `fotos` im Ordner `<user-id>/`. Sie sind nur über zeitlich begrenzte, signierte Links abrufbar.
 - Der öffentliche `anon`-Schlüssel darf im Code stehen, er ist dafür gedacht. Geschützt wird über die Regeln oben.
+
+## Gut zu wissen
+
+- **Kostenloses Supabase pausiert nach 7 Tagen ohne Zugriff.** Dann zeigt Formora einen Verbindungsfehler. Im Dashboard auf „Restore project“ tippen, nach 1–2 Minuten geht es weiter, die Daten bleiben. Wer Formora regelmäßig nutzt, merkt davon nichts.
+- **Bestätigungs-Mails:** Der kostenlose Mailversand von Supabase schickt nur wenige Mails pro Stunde. Für viele neue Nutzer auf einmal später unter Authentication → Emails einen eigenen Mail-Dienst (SMTP) eintragen.
+- **Bots:** Die Registrierung ist offen. Wer Missbrauch sieht, schaltet unter Authentication → Attack Protection das Captcha ein.
+- **Home-Bildschirm-App und Safari sind getrennt.** Wer Formora zum Home-Bildschirm hinzufügt, muss sich in der App einmal neu anmelden und Face ID dort noch einmal einschalten. Das ist ein iOS-Verhalten.
+- **Face ID ist eine Gerätesperre**, kein Ersatz für das Passwort. Wer das entsperrte Handy hat, kann sie unter Einstellungen → Konto ausschalten.
+- **Obergrenzen pro Konto:** ein Eintrag höchstens 300 KB, ein Konto höchstens 50.000 Einträge. Für schon eingerichtete Projekte einmal `supabase/update-1-obergrenzen.sql` im SQL Editor ausführen. Bei Neueinrichtung steckt es schon in `schema.sql`.
+- **Import** schreibt 200 Einträge pro Anfrage, auch hunderte Einträge sind in Sekunden drin.

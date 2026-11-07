@@ -63,6 +63,7 @@ async function backend(route){
   const page=await ctx.newPage();
   page.on('pageerror',e=>errs.push(String(e)));
   page.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::ERR/.test(m.text()))errs.push(m.text())});
+  let posts=0;page.on('request',r=>{if(r.method()==='POST'&&r.url().includes('/rest/v1/docs'))posts++});
   const cdp=await ctx.newCDPSession(page);
   await cdp.send('WebAuthn.enable');
   const {authenticatorId}=await cdp.send('WebAuthn.addVirtualAuthenticator',{options:{protocol:'ctap2',transport:'internal',hasResidentKey:true,hasUserVerification:true,isUserVerified:true,automaticPresenceSimulation:true}});
@@ -72,6 +73,8 @@ async function backend(route){
   ok(await page.evaluate(()=>window.innerWidth===390&&document.compatMode==='CSS1Compat'),'Seite in Handy-Breite (Viewport 390 px, Standardmodus)');
   // Registrieren
   await page.click('[data-goto="signup"]');ok(await page.isVisible('#agPw2'),'Registrieren-Formular');
+  ok((await page.getAttribute('#agPw','autocomplete'))==='new-password','Registrieren: Handy schlägt neues Passwort vor');
+  await page.check('#agShow');ok((await page.getAttribute('#agPw','type'))==='text'&&(await page.getAttribute('#agPw2','type'))==='text','Passwort anzeigen');await page.uncheck('#agShow');
   await page.fill('#agEmail','robin@test.de');await page.fill('#agPw','geheim123');await page.fill('#agPw2','anders123');await page.click('#agSignup');
   ok((await page.textContent('#agMsg')).includes('stimmen nicht'),'Passwörter müssen übereinstimmen');
   await page.fill('#agPw2','geheim123');await page.click('#agSignup');
@@ -120,6 +123,28 @@ async function backend(route){
   await page.evaluate(()=>{document.getElementById('acctCard').open=true});await page.click('#acLogout');await page.waitForSelector('#agLogin',{state:'visible'});
   await page.fill('#agEmail','robin@test.de');await page.fill('#agPw','geheim123');await page.click('#agLogin');await page.waitForSelector('#authGate',{state:'hidden'});await page.waitForTimeout(400);
   ok(await page.evaluate(()=>S.body.some(b=>b.kg===81.5)),'Erster Benutzer: Daten wieder da');
+  // Import: 450 Einträge in wenigen Anfragen
+  {const meals=Array.from({length:450},(_,i)=>({date:'2026-10-'+String(1+i%28).padStart(2,'0'),name:'Test '+i,kcal:100+i,p:5,c:10,f:2,createdAt:1790000000000+i}));
+   const body=[{date:'2026-10-01',kg:83},{date:'2026-10-02',kg:82.8}];
+   await page.setInputFiles('#impFile',{name:'export.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({data:{meals,body}}))});
+   await page.waitForSelector('#impGo',{state:'attached'});posts=0;
+   await page.evaluate(()=>document.getElementById('impGo').click());
+   await page.waitForFunction(()=>/importiert/.test(document.getElementById('toast')?.textContent||document.body.textContent),null,{timeout:20000}).catch(()=>{});await page.waitForTimeout(800);
+   const me=rows.filter(r=>r.col==='meals').length;
+   ok(me===450&&rows.filter(r=>r.col==='body').length>=3,'Import: 450 Mahlzeiten + Gewichte gespeichert ('+me+')');
+   ok(posts<=4,'Import in wenigen Anfragen ('+posts+' statt ~452)');
+   ok(await page.evaluate(()=>S.meals.length>=450),'Importierte Daten sofort sichtbar');}
+  await page.evaluate(()=>{document.getElementById('acctCard').open=true});await page.click('#acLogout');await page.waitForSelector('#agLogin',{state:'visible'});
+  // Abgelaufener Bestätigungslink
+  await page.goto(ORIGIN+'/?x=1#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired');
+  await page.waitForSelector('#agLogin',{state:'visible'});
+  ok((await page.textContent('#agMsg')).includes('abgelaufen'),'Abgelaufener Link: verständliche Meldung');
+  // Passwort zurücksetzen über den Link aus der Mail
+  {const u=users.get('robin@test.de');
+   await page.goto(ORIGIN+'/?r=1#access_token='+jwt(u)+'&refresh_token=r-'+u.id+'&expires_in=3600&token_type=bearer&type=recovery');
+   await page.waitForSelector('#agNewPw',{state:'visible'});ok(true,'Link aus der Mail → Formular „Neues Passwort“');
+   await page.fill('#agPwNew','neuesPasswort9');await page.click('#agNewPw');await page.waitForSelector('#authGate',{state:'hidden'});
+   ok(u.pw==='neuesPasswort9','Neues Passwort gespeichert und angemeldet');}
   await page.screenshot({path:require('path').join(__dirname,'shots','cloud_app.png')});
   await page.evaluate(()=>{document.getElementById('acctCard').open=true});await page.click('#acLogout');await page.waitForSelector('#agLogin',{state:'visible'});
   await page.screenshot({path:require('path').join(__dirname,'shots','cloud_login.png')});
