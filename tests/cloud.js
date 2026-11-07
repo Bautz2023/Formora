@@ -51,7 +51,7 @@ async function backend(route){
 
 (async()=>{
   const browser=await chromium.launch();
-  const ctx=await browser.newContext({viewport:{width:390,height:844}});
+  const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});   // wie iPhone: Viewport-Meta wird beachtet
   const html=fs.readFileSync(HTML,'utf8');const errs=[];
   await ctx.route(ORIGIN+'/**',r=>{const p=new URL(r.request().url()).pathname;
     if(p==='/'||p==='/index.html')return r.fulfill({status:200,contentType:'text/html; charset=utf-8',body:html});
@@ -69,6 +69,7 @@ async function backend(route){
 
   await page.goto(ORIGIN+'/');await page.waitForSelector('#authGate:not([hidden])');
   ok(await page.isVisible('#agLogin')&&!(await page.isVisible('#v-dash')),'Ohne Konto: Anmeldebildschirm, App verborgen');
+  ok(await page.evaluate(()=>window.innerWidth===390&&document.compatMode==='CSS1Compat'),'Seite in Handy-Breite (Viewport 390 px, Standardmodus)');
   // Registrieren
   await page.click('[data-goto="signup"]');ok(await page.isVisible('#agPw2'),'Registrieren-Formular');
   await page.fill('#agEmail','robin@test.de');await page.fill('#agPw','geheim123');await page.fill('#agPw2','anders123');await page.click('#agSignup');

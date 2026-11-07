@@ -309,6 +309,17 @@ ACCT_HTML = '''    <details class="card" id="acctCard">
 
 LOCAL_FALLBACK_NOTE = "Foto-Schätzung und Coach-Check brauchen Claude und funktionieren nur in der Claude-Version von Formora."
 
+# Eigenständige Seite: Doctype, Zeichensatz und Viewport (im Artefakt ergänzt das Gerüst diese Zeilen)
+HEAD = ('<!doctype html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+        '<meta name="theme-color" content="#0B0B0A">\n'
+        '<meta name="apple-mobile-web-app-capable" content="yes">\n'
+        '<meta name="mobile-web-app-capable" content="yes">\n'
+        '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n'
+        '<meta name="format-detection" content="telephone=no">\n')
+assert s.startswith("<title>"), s[:40]
+s = HEAD + s
+
 # Supabase-Bibliothek laden
 R('<link rel="preconnect" href="https://fonts.googleapis.com">',
   '<script src="' + SB_JS + '"></script>\n<link rel="preconnect" href="https://fonts.googleapis.com">')
