@@ -1068,7 +1068,8 @@ let TEMPLATES={
 };
 const GYM_ORDER=["push","pull","ok"];
 const DEFAULT_TEMPLATES=JSON.parse(JSON.stringify(TEMPLATES));
-/* Übungsdatenbank: [Name, Muskelgruppe, Gerät, Flags] – c = Grundübung (3:00 Pause), l = Beine (+5 kg), b = 0 kg erlaubt, v = Volumen mit Körpergewicht */
+/* Übungsdatenbank: [Name, Muskelgruppe, Gerät, Flags] – c = Grundübung (3:00 Pause), l = Beine (+5 kg), b = 0 kg erlaubt, v = Volumen mit Körpergewicht,
+   s = Halteübung (Sekunden statt Wdh., v64), x = Calisthenics, a = Skill für Fortgeschrittene (nicht im Plan-Assistenten) */
 const EX_GROUPS={brust:"Brust",ruecken:"Rücken",schulter:"Schultern",bizeps:"Bizeps",trizeps:"Trizeps",beine:"Beine",po:"Po & Hüfte",waden:"Waden",bauch:"Bauch",ganz:"Ganzkörper"};
 const EX_EQUIP={ma:"Maschine",ka:"Kabelzug",lh:"Langhantel",kh:"Kurzhantel",sm:"Multipresse",sz:"SZ-Stange",kb:"Kettlebell",kg:"Körpergewicht"};
 const EX_DB=[
@@ -1076,8 +1077,8 @@ const EX_DB=[
  ["Bankdrücken (Langhantel)","brust","lh","c"],["Schrägbankdrücken","brust","lh","c"],["Negativbankdrücken","brust","lh","c"],["Kurzhantel-Bankdrücken","brust","kh","c"],
  ["Kurzhantel-Schrägbankdrücken","brust","kh","c"],["Bankdrücken Multipresse","brust","sm","c"],["Schrägbankdrücken Multipresse","brust","sm","c"],["Butterfly","brust","ma",""],
  ["Kabel-Crossover","brust","ka",""],["Kabel-Flys von unten","brust","ka",""],["Kurzhantel-Flys","brust","kh",""],["Dip-Maschine","brust","ma","c"],
- ["Dips","brust","kg","cbv"],["Liegestütze","brust","kg","bv"],
- ["Klimmzüge","ruecken","kg","cbv"],["Klimmzüge Untergriff","ruecken","kg","cbv"],["Klimmzüge unterstützt (Maschine)","ruecken","ma","c"],["Latzug breit","ruecken","ka","c"],
+ ["Dips","brust","kg","cbvx"],["Liegestütze","brust","kg","bvx"],
+ ["Klimmzüge","ruecken","kg","cbvx"],["Klimmzüge Untergriff","ruecken","kg","cbvx"],["Klimmzüge unterstützt (Maschine)","ruecken","ma","c"],["Latzug breit","ruecken","ka","c"],
  ["Latzug eng","ruecken","ka","c"],["Latzug Maschine","ruecken","ma","c"],["Rudern","ruecken","ma","c"],["Rudern am Kabel sitzend","ruecken","ka","c"],
  ["Rudermaschine brustgestützt","ruecken","ma","c"],["Low Row Maschine","ruecken","ma","c"],["Rudern breit","ruecken","ma","c"],["Rudern eng","ruecken","ma","c"],["Latzug einarmig","ruecken","ka",""],["High Row Maschine","ruecken","ma","c"],["T-Bar-Rudern","ruecken","lh","c"],["Langhantelrudern","ruecken","lh","c"],
  ["Kurzhantelrudern einarmig","ruecken","kh","c"],["Kreuzheben","ruecken","lh","cl"],["Überzüge","ruecken","ka",""],["Pullover Maschine","ruecken","ma",""],
@@ -1095,17 +1096,35 @@ const EX_DB=[
  ["Rumänisches Kreuzheben","beine","lh","cl"],["Rumänisches Kreuzheben (Kurzhantel)","beine","kh","cl"],["Adduktoren-Maschine","beine","ma","l"],
  ["Hip Thrust","po","lh","cl"],["Hip-Thrust-Maschine","po","ma","cl"],["Glute Bridge","po","kg","bl"],["Abduktoren-Maschine","po","ma","l"],["Po-Kickback am Kabel","po","ka","l"],["Glute-Kickback-Maschine","po","ma","l"],
  ["Wadenheben","waden","ma","l"],["Wadenheben stehend","waden","ma","l"],["Wadenheben sitzend","waden","ma","l"],["Wadenheben an der Beinpresse","waden","ma","l"],["Wadenheben Multipresse","waden","sm","l"],
- ["Crunch","bauch","kg","b"],["Crunch am Kabel","bauch","ka",""],["Bauchmaschine","bauch","ma",""],["Beinheben","bauch","kg","bv"],["Beinheben liegend","bauch","kg","b"],
- ["Plank (Sekunden)","bauch","kg","b"],["Russian Twist","bauch","kg","b"],["Ab-Roller","bauch","kg","b"],["Holzhacker am Kabel","bauch","ka",""],["Rumpfrotation Maschine","bauch","ma",""],
- ["Kettlebell Swings","ganz","kb","cl"],["Farmer's Walk","ganz","kh",""],["Thruster","ganz","kh","cl"]
-].map(([name,g,eq,fl])=>({name,g,eq,c:fl.includes("c"),l:fl.includes("l"),b:fl.includes("b"),v:fl.includes("v")}));
+ ["Crunch","bauch","kg","b"],["Crunch am Kabel","bauch","ka",""],["Bauchmaschine","bauch","ma",""],["Beinheben","bauch","kg","bvx"],["Beinheben liegend","bauch","kg","b"],
+ ["Plank (Sekunden)","bauch","kg","bsx"],["Russian Twist","bauch","kg","b"],["Ab-Roller","bauch","kg","b"],["Holzhacker am Kabel","bauch","ka",""],["Rumpfrotation Maschine","bauch","ma",""],
+ ["Kettlebell Swings","ganz","kb","cl"],["Farmer's Walk","ganz","kh",""],["Thruster","ganz","kh","cl"],
+ /* Calisthenics (v64) */
+ ["Handstand Push-ups (an der Wand)","schulter","kg","cbvxa"],["Pike Push-ups","schulter","kg","bvx"],["Handstand halten (an der Wand)","schulter","kg","bsx"],
+ ["Freier Handstand","schulter","kg","bsxa"],["Wall Walks","schulter","kg","bx"],["Planche Lean","schulter","kg","bsx"],["Tuck Planche","schulter","kg","bsxa"],
+ ["Pseudo-Planche Push-ups","brust","kg","bvxa"],["Archer Push-ups","brust","kg","bvx"],["Ring Dips","brust","kg","cbvxa"],["Diamond Push-ups","trizeps","kg","bvx"],
+ ["Straight Bar Dips","trizeps","kg","bvx"],
+ ["Muscle-ups (Stange)","ruecken","kg","cbvxa"],["Muscle-ups (Ringe)","ruecken","kg","cbvxa"],["Negative Muscle-ups","ruecken","kg","bvxa"],
+ ["Explosive Klimmzüge","ruecken","kg","cbvx"],["Archer-Klimmzüge","ruecken","kg","cbvxa"],["Australian Pull-ups","ruecken","kg","bvx"],["Scapula Pull-ups","ruecken","kg","bvx"],
+ ["Front Lever (Tuck)","ruecken","kg","bsx"],["Front Lever (Advanced Tuck)","ruecken","kg","bsxa"],["Front Lever (gestreckt)","ruecken","kg","bsxa"],
+ ["Front Lever Raises","ruecken","kg","bvxa"],["Back Lever","ruecken","kg","bsxa"],["Skin the Cat","ruecken","kg","bx"],
+ ["L-Sit","bauch","kg","bsx"],["Tuck L-Sit","bauch","kg","bsx"],["V-Sit","bauch","kg","bsxa"],["Hollow Body Hold","bauch","kg","bsx"],
+ ["Toes to Bar","bauch","kg","bvx"],["Dragon Flag","bauch","kg","bxa"],
+ ["Pistol Squats","beine","kg","blvx"],["Shrimp Squats","beine","kg","blx"],["Nordic Curls","beine","kg","blx"],["Sprungkniebeugen","beine","kg","blx"]
+].map(([name,g,eq,fl])=>({name,g,eq,c:fl.includes("c"),l:fl.includes("l"),b:fl.includes("b"),v:fl.includes("v"),s:fl.includes("s"),x:fl.includes("x"),a:fl.includes("a")}));
 const EXI=new Map();
 /* Zusätzliche Suchbegriffe (englische/umgangssprachliche Namen) für den Plan-Editor */
-const EX_ALIAS={"Trizepsdrücken am Kabel (Stange)":"trizeps extension stange pushdown","Trizepsdrücken am Kabel (Seil)":"trizeps extension seil pushdown rope","Trizeps Überkopf":"trizeps extension overhead","French Press":"skullcrusher stirndrücken extension"};
+const EX_ALIAS={"Handstand Push-ups (an der Wand)":"hspu handstand liegestütze","Pike Push-ups":"pike liegestütze","Handstand halten (an der Wand)":"handstand wall",
+ "Muscle-ups (Stange)":"muscle up muscleup","Muscle-ups (Ringe)":"muscle up muscleup ringe rings","Negative Muscle-ups":"muscle up negativ","Explosive Klimmzüge":"explosive pull-ups muscle up vorstufe",
+ "Front Lever (Tuck)":"frontlever front lever","Front Lever (Advanced Tuck)":"frontlever front lever","Front Lever (gestreckt)":"frontlever front lever full","Back Lever":"backlever",
+ "L-Sit":"lsit l sit","Tuck L-Sit":"lsit l sit","Australian Pull-ups":"inverted row rudern körpergewicht","Pistol Squats":"einbeinige kniebeuge","Nordic Curls":"nordic hamstring beinbeuger",
+ "Tuck Planche":"planche","Planche Lean":"planche","Pseudo-Planche Push-ups":"planche liegestütze","Ring Dips":"ringe dips","Hollow Body Hold":"hollow","Toes to Bar":"t2b beinheben","Trizepsdrücken am Kabel (Stange)":"trizeps extension stange pushdown","Trizepsdrücken am Kabel (Seil)":"trizeps extension seil pushdown rope","Trizeps Überkopf":"trizeps extension overhead","French Press":"skullcrusher stirndrücken extension"};
 function buildExIndex(){EXI.clear();EX_DB.concat(CFG.customEx||[]).forEach(e=>EXI.set(e.name,e))}
 const exFlag=(n,k)=>!!(EXI.get(n)||{})[k];
-const isComp=n=>exFlag(n,"c"),isLeg=n=>exFlag(n,"l"),isBw=n=>exFlag(n,"b"),isBwVol=n=>exFlag(n,"v");
-const defTarget=e=>e&&e.c?"6–10":e&&(e.g==="bauch"||e.g==="waden")?"12–15":"10–12";
+const isComp=n=>exFlag(n,"c"),isLeg=n=>exFlag(n,"l"),isBw=n=>exFlag(n,"b"),isBwVol=n=>exFlag(n,"v"),isHold=n=>exFlag(n,"s");
+/* Satz als Text: Halteübungen in Sekunden (optional mit Zusatzgewicht), sonst kg × Wdh. */
+const setTxt=(n,x)=>isHold(n)?(N(x.kg)?"+"+fmtKg(N(x.kg))+" kg · ":"")+N(x.reps)+" s":fmtKg(x.kg)+" × "+N(x.reps);
+const defTarget=e=>e&&e.s?"10–20":e&&e.a?"3–6":e&&e.c?"6–10":e&&(e.g==="bauch"||e.g==="waden")?"12–15":"10–12";
 const DEFAULT_CFG={height:184,age:31,protein:160,deficit:450,activity:1.5,goalKg:80,stepGoal:10000,goal:"cut",sex:"m",bf:0,surplus:250,week:null,weekSrc:"plan",customEx:[],gymEquip:null,kcalAdj:[],race:null,sched:null,runScale:1};
 const CFG_RANGE={height:[120,230],age:[14,99],protein:[50,300],deficit:[0,1000],activity:[1.1,2.4],goalKg:[40,200],stepGoal:[1000,40000],surplus:[0,1000],bf:[3,60]};
 const LIMITS={bodyKg:[40,200],runKm:[0.5,60],pace:[150,900],hr:[60,220],restHr:[30,120],gymKg:[0,400],reps:[1,100],kcal:[1,3000],macro:[0,500],macroTol:1.3,steps:[0,100000]};
@@ -1279,8 +1298,9 @@ function checkRun({km,sec,hr,hrMax,laps}){
   }
   return null;
 }
-function checkSet(kg,reps){
+function checkSet(kg,reps,hold){
   if(!inR(kg,LIMITS.gymKg))return "Gewicht 0–400 kg";
+  if(hold){if(!inR(reps,[1,600])||Math.round(reps)!==reps)return "Sekunden 1–600 (ganze Zahl)";return null}
   if(!inR(reps,LIMITS.reps)||Math.round(reps)!==reps)return "Wiederholungen 1–100 (ganze Zahl)";
   return null;
 }
@@ -1403,6 +1423,9 @@ function parseRange(t){const m=String(t||"").match(/(\d+)\s*[–-]\s*(\d+)/);if(
 function progression(name,target,last){
   const R=parseRange(target);if(!R||!last||!last.length)return null;
   const hi=R[1],top=Math.max(...last.map(s=>N(s.kg)));
+  if(isHold(name)){const lo=Math.min(...last.map(s=>N(s.reps)));
+    return last.every(s=>N(s.reps)>=hi)?{up:true,inc:0,kg:top,text:"Ziel erreicht – nächste Stufe (z. B. Tuck → Advanced Tuck) oder +5 s"}
+      :{up:false,inc:0,kg:top,text:"+3 s pro Satz (Ziel "+Math.min(hi,lo+3)+" s)"}}
   if(last.every(s=>N(s.reps)>=hi)){
     const inc=isLeg(name)?5:2.5;
     return {up:true,inc,kg:top+inc,text:"+"+fmtKg(inc)+" kg → "+fmtKg(top+inc)+" kg"+(isBw(name)&&!top?" Zusatzgewicht":"")};
@@ -1415,7 +1438,7 @@ function lastSets(name,beforeDate,excludeId){
   return s?s.exercises.find(e=>e.name===name).sets:null;
 }
 function bwOn(ds){const bw=cache().bw;let v=null;for(const b of bw){if(b.date<=ds)v=N(b.kg);else break}return v??(bw.length?N(bw[0].kg):kgNow())}
-function volume(s){return (s.exercises||[]).reduce((a,e)=>a+(e.sets||[]).reduce((b,x)=>{const kg=N(x.kg),r=N(x.reps);return b+(isBwVol(e.name)?bwOn(s.date)+kg:kg)*r},0),0)}
+function volume(s){return (s.exercises||[]).reduce((a,e)=>isHold(e.name)?a:a+(e.sets||[]).reduce((b,x)=>{const kg=N(x.kg),r=N(x.reps);return b+(isBwVol(e.name)?bwOn(s.date)+kg:kg)*r},0),0)}
 const restSec=name=>isComp(name)?180:120;
 
 /* =====================================================================
@@ -2801,14 +2824,14 @@ function renderEx(){
   const ds=$("gymDate").value||today(),ex=editing&&editing.kind==="sessions"?editing.id:null;
   setHTML($("exList"),draft.map((e,i)=>{
     const last=lastSets(e.name,ds,ex),prog=progression(e.name,e.target,last);
-    const rows=[h`<span></span><span class="h">kg</span><span class="h">Wdh.</span><span class="h" style="text-align:center">✓</span>`];
+    const H=isHold(e.name),rows=[h`<span></span><span class="h">${H?"+kg":"kg"}</span><span class="h">${H?"Sek.":"Wdh."}</span><span class="h" style="text-align:center">✓</span>`];
     for(let k=0;k<e.n;k++){const L=last&&last[k],v=e.vals[k];
-      rows.push(h`<span class="n">${k+1}</span><input id="kg-${i}-${k}" data-i="${i}" data-k="${k}" data-f="kg" inputmode="decimal" value="${v.kg}" placeholder="${L?fmtKg(L.kg):"kg"}" aria-label="${e.name} Satz ${k+1} kg"><input id="r-${i}-${k}" data-i="${i}" data-k="${k}" data-f="r" inputmode="numeric" value="${v.r}" placeholder="${L?String(N(L.reps)):"Wdh."}" aria-label="${e.name} Satz ${k+1} Wiederholungen"><button class="done" data-done="${i}-${k}" aria-pressed="${v.done}" aria-label="${e.name} Satz ${k+1} erledigt, Pause starten">✓</button>`)}
+      rows.push(h`<span class="n">${k+1}</span><input id="kg-${i}-${k}" data-i="${i}" data-k="${k}" data-f="kg" inputmode="decimal" value="${v.kg}" placeholder="${L?fmtKg(L.kg):"kg"}" aria-label="${e.name} Satz ${k+1} kg"><input id="r-${i}-${k}" data-i="${i}" data-k="${k}" data-f="r" inputmode="numeric" value="${v.r}" placeholder="${L?String(N(L.reps)):H?"Sek.":"Wdh."}" aria-label="${e.name} Satz ${k+1} ${H?"Sekunden":"Wiederholungen"}"><button class="done" data-done="${i}-${k}" aria-pressed="${v.done}" aria-label="${e.name} Satz ${k+1} erledigt, Pause starten">✓</button>`)}
     const en=exNoteOf(e.name);
-    return h`<div class="ex"><div class="ex-head"><span class="ex-name">${e.name}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="swb" data-swap="${i}" aria-label="${e.name} tauschen">Tauschen</button><span class="ex-target">${e.target?e.n+" × "+e.target:""}</span></span></div>
+    return h`<div class="ex"><div class="ex-head"><span class="ex-name">${e.name}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="swb" data-swap="${i}" aria-label="${e.name} tauschen">Tauschen</button><span class="ex-target">${e.target?e.n+" × "+e.target+(H?" s":""):""}</span></span></div>
       <button class="exnote${en?"":" empty"}" data-note="${i}" aria-label="Notiz und Foto zu ${e.name}">${en&&en.photo?h`<img src="${blobSrc(en.photo)}" alt="" data-asset="1">`:""}<span>${en&&en.note?en.note:en&&en.photo?"Foto gespeichert":"+ Notiz / Foto"}</span></button>
       ${last?h`<div class="row sb" style="gap:6px"><span class="cmplegend"><span>Vergleich zum letzten Mal:</span><b class="up">▲ besser</b><b class="down">▼ schlechter</b></span><span class="cmpb" id="cmpb-${i}" hidden></span></div>`:""}
-      <div class="ex-last">${last?"Letztes Mal: "+last.map(s=>fmtKg(s.kg)+" × "+N(s.reps)).join(" · "):e.vals.some(v=>v.pre)?"Startgewicht aus deinem Plan – Wdh. trägst du selbst ein.":"Noch keine Werte. Grau vorausgefüllt wird immer dein letztes Training."}</div>
+      <div class="ex-last">${last?"Letztes Mal: "+last.map(s=>setTxt(e.name,s)).join(" · "):e.vals.some(v=>v.pre)?"Startgewicht aus deinem Plan – Wdh. trägst du selbst ein.":"Noch keine Werte. Grau vorausgefüllt wird immer dein letztes Training."}</div>
       ${prog?h`<div class="ex-prog${prog.up?" up":""}">Vorschlag: ${prog.text}</div>`:""}
       <div class="sets">${rows}</div>
       <div class="row">${last?h`<button class="btn ghost" data-same="${i}">✓ wie letztes Mal</button>`:""}<button class="btn ghost" data-add="${i}">+ Satz</button>${e.n>1?h`<button class="btn ghost" data-rem="${i}">− Satz</button>`:""}</div></div>`}));
@@ -2881,10 +2904,10 @@ function collectGym(ds,excludeId){
       if(!rS&&(!kS||v.pre))continue;
       let kg=kS?num(kS):L?N(L.kg):null,r=rS?num(rS):L?N(L.reps):null;
       if(kS&&kg==null)return {err:where+"kg ungültig",el:"kg-"+i+"-"+k};
-      if(rS&&r==null)return {err:where+"Wdh. ungültig",el:"r-"+i+"-"+k};
+      if(rS&&r==null)return {err:where+(isHold(e.name)?"Sekunden":"Wdh.")+" ungültig",el:"r-"+i+"-"+k};
       if(kg==null){if(isBw(e.name))kg=0;else return {err:where+"kg fehlt (0 kg nur bei Körpergewichtsübungen)",el:"kg-"+i+"-"+k}}
-      if(r==null)return {err:where+"Wiederholungen fehlen",el:"r-"+i+"-"+k};
-      const ce=checkSet(kg,r);if(ce)return {err:where+ce,el:(ce.startsWith("Gewicht")?"kg-":"r-")+i+"-"+k};
+      if(r==null)return {err:where+(isHold(e.name)?"Sekunden fehlen":"Wiederholungen fehlen"),el:"r-"+i+"-"+k};
+      const ce=checkSet(kg,r,isHold(e.name));if(ce)return {err:where+ce,el:(ce.startsWith("Gewicht")?"kg-":"r-")+i+"-"+k};
       sets.push({kg,reps:Math.round(r)})}
     if(sets.length)exercises.push({name:e.name,sets})}
   return {exercises};
@@ -2915,7 +2938,7 @@ function renderDayChips(){
   setHTML($("exNames"),[...EXI.keys()].sort((a,b)=>a.localeCompare(b,"de")).map(n=>h`<option value="${n}"></option>`));
 }
 let pe={day:"push",plan:null,dirty:false,q:"",grp:""};
-const exMeta=n=>{const e=EXI.get(n);return e?EX_GROUPS[e.g]+" · "+EX_EQUIP[e.eq]+(e.c?" · Grundübung":"")+(e.own?" · eigene":""):"eigene Übung"};
+const exMeta=n=>{const e=EXI.get(n);return e?EX_GROUPS[e.g]+" · "+EX_EQUIP[e.eq]+(e.c?" · Grundübung":"")+(e.s?" · Halten (Sek.)":"")+(e.a?" · Skill":"")+(e.own?" · eigene":""):"eigene Übung"};
 const exAll=()=>EX_DB.concat(CFG.customEx||[]);
 function peRender(){
   if(!pe.plan)pe.plan=JSON.parse(JSON.stringify(TEMPLATES));
@@ -2925,12 +2948,12 @@ function peRender(){
     <label class="f">Name des Tages<input id="peName" maxlength="40" value="${t.name}"></label>
     <div class="pelist" id="peRows">${t.ex.map(([n,sets,tg,kg],i)=>h`<div class="perow"><span class="n">${n}<small>${exMeta(n)}</small></span>
       <label class="pq"><input data-pi="${i}" data-pf="n" inputmode="numeric" maxlength="2" value="${sets}" aria-label="Sätze ${n}"><span>Sätze</span></label>
-      <label class="pq"><input data-pi="${i}" data-pf="t" maxlength="20" value="${tg}" placeholder="8–12" aria-label="Wiederholungen ${n}"><span>Wdh.</span></label>
+      <label class="pq"><input data-pi="${i}" data-pf="t" maxlength="20" value="${tg}" placeholder="${isHold(n)?"10–20":"8–12"}" aria-label="${isHold(n)?"Sekunden":"Wiederholungen"} ${n}"><span>${isHold(n)?"Sek.":"Wdh."}</span></label>
       <label class="pq kg"><input data-pi="${i}" data-pf="kg" inputmode="decimal" maxlength="6" value="${kg!=null?fmtKg(kg):""}" placeholder="Start" aria-label="Startgewicht ${n} in kg"><span>kg</span></label>
       <span class="pb"><button data-up="${i}" aria-label="${n} nach oben"${raw(i?"":" disabled")}>↑</button><button data-dn="${i}" aria-label="${n} nach unten"${raw(i<t.ex.length-1?"":" disabled")}>↓</button><button data-del="${i}" aria-label="${n} entfernen">✕</button></span></div>`)}</div>
     <span class="label">Übung hinzufügen</span>
     <input id="peQ" type="search" maxlength="40" placeholder="Übung suchen, z. B. Beinpresse" value="${pe.q}" aria-label="Übung suchen">
-    <div class="chips fdcats" id="peGroups">${Object.entries(EX_GROUPS).map(([k,l])=>h`<button class="chip sm ink" data-pg="${k}" aria-pressed="${k===pe.grp}">${l}</button>`)}</div>
+    <div class="chips fdcats" id="peGroups"><button class="chip sm ink" data-pg="cali" aria-pressed="${pe.grp==="cali"}">Calisthenics</button>${Object.entries(EX_GROUPS).map(([k,l])=>h`<button class="chip sm ink" data-pg="${k}" aria-pressed="${k===pe.grp}">${l}</button>`)}</div>
     <div class="fdlist pelistbox" id="peList"></div>
     <details class="tree fold" id="peEq"><summary>Mein Studio hat <span>${eqOn.length} von ${Object.keys(EX_EQUIP).length} Geräten</span></summary><div class="foldin">
       <div class="ex-last">Vorgeschlagen werden nur Übungen mit diesen Geräten.</div>
@@ -2941,6 +2964,7 @@ function peRender(){
         <label class="f">Gerät<select id="pnEq">${Object.entries(EX_EQUIP).map(([k,l])=>h`<option value="${k}">${l}</option>`)}</select></label></div>
       <label class="check"><input type="checkbox" id="pnC"> Grundübung (3:00 Pause)</label>
       <label class="check"><input type="checkbox" id="pnB"> Mit Körpergewicht (0 kg erlaubt)</label>
+      <label class="check"><input type="checkbox" id="pnS"> Halteübung (Sekunden statt Wiederholungen)</label>
       <button class="btn ghost" id="pnSave">Anlegen und hinzufügen</button>
       ${(CFG.customEx||[]).length?h`<span class="label">Eigene Übungen</span><div class="chips">${CFG.customEx.map(e=>h`<button class="chip sm" data-pcx="${e.name}" title="Löschen">${e.name} ✕</button>`)}</div>`:""}
     </div></details>
@@ -2951,8 +2975,8 @@ function peRender(){
 function peRenderList(){
   const t=pe.plan[pe.day],have=new Set(t.ex.map(e=>e[0])),eqOn=CFG.gymEquip||Object.keys(EX_EQUIP),q=normQ(pe.q).trim();
   if(!q&&!pe.grp){setHTML($("peList"),h`<span class="ex-last">${exAll().length} Übungen – suchen oder Muskelgruppe antippen.</span>`);return}
-  const L=exAll().filter(e=>(!pe.grp||e.g===pe.grp)&&eqOn.includes(e.eq)&&(!q||q.split(/\s+/).every(w=>normQ(e.name+" "+EX_EQUIP[e.eq]+" "+EX_GROUPS[e.g]+" "+(EX_ALIAS[e.name]||"")).includes(w)))).slice(0,60);
-  setHTML($("peList"),L.length?L.map(e=>h`<button class="fd${have.has(e.name)?" alt":""}" data-pa="${e.name}"${raw(have.has(e.name)?" disabled":"")}><span class="n">${e.name}${e.own?h`<span class="tag">eigene</span>`:""}</span><span class="k">${have.has(e.name)?"✓":"+"}</span><span class="m">${EX_GROUPS[e.g]} · ${EX_EQUIP[e.eq]}${e.c?" · Grundübung":""}</span></button>`)
+  const L=exAll().filter(e=>(!pe.grp||(pe.grp==="cali"?e.x:e.g===pe.grp))&&(pe.grp==="cali"||eqOn.includes(e.eq))&&(!q||q.split(/\s+/).every(w=>normQ(e.name+" "+EX_EQUIP[e.eq]+" "+EX_GROUPS[e.g]+" "+(EX_ALIAS[e.name]||"")+(e.x?" calisthenics kalisthenik street workout":"")+(e.s?" halten hold sekunden":"")).includes(w)))).slice(0,60);
+  setHTML($("peList"),L.length?L.map(e=>h`<button class="fd${have.has(e.name)?" alt":""}" data-pa="${e.name}"${raw(have.has(e.name)?" disabled":"")}><span class="n">${e.name}${e.own?h`<span class="tag">eigene</span>`:""}</span><span class="k">${have.has(e.name)?"✓":"+"}</span><span class="m">${EX_GROUPS[e.g]} · ${EX_EQUIP[e.eq]}${e.c?" · Grundübung":""}${e.s?" · Halten (Sek.)":""}${e.a?" · Skill":""}</span></button>`)
     :h`<span class="ex-last">Keine passende Übung${CFG.gymEquip?" mit deinen Geräten":""}. Unten kannst du eine eigene anlegen.</span>`);
 }
 const peTouch=()=>{if(!pe.dirty){pe.dirty=true;peRender()}};
@@ -2978,7 +3002,7 @@ $("peBody").addEventListener("click",e=>{
     if(!needDb())return;withBusy(b,()=>saveSettings({customEx:CFG.customEx.filter(e=>e.name!==n).map(({own,...e})=>e)}));return}
   if(b.id==="pnSave"){const name=clean($("pnName").value,60);if(!name){toast("Name eintragen");return}if(!needDb())return;
     if(EXI.has(name)){toast("Diese Übung gibt es schon");return}if((CFG.customEx||[]).length>=100){toast("Maximal 100 eigene Übungen");return}
-    const g=$("pnG").value,ex={name,g,eq:$("pnEq").value,c:$("pnC").checked,l:["beine","po","waden"].includes(g),b:$("pnB").checked,v:false};
+    const g=$("pnG").value,ex={name,g,eq:$("pnEq").value,c:$("pnC").checked,l:["beine","po","waden"].includes(g),b:$("pnB").checked||$("pnS").checked,v:false,s:$("pnS").checked};
     withBusy(b,async()=>{const keep=pe.plan;pe.dirty=true;await saveSettings({customEx:(CFG.customEx||[]).map(({own,...e})=>e).concat([ex])});
       pe.plan=keep;keep[pe.day].ex.length<20&&keep[pe.day].ex.push([name,3,defTarget(ex)]);peRender();toast(name+" angelegt → "+keep[pe.day].name)});return}
   if(b.id==="peReset"){pe.plan[pe.day]=JSON.parse(JSON.stringify(DEFAULT_TEMPLATES[pe.day]));pe.dirty=true;peRender();toast("Standard für „"+pe.plan[pe.day].name+"“ geladen – zum Übernehmen speichern");return}
@@ -3390,7 +3414,7 @@ function applySettings(d){
   c.week=Array.isArray(wk)&&wk.length===7&&wk.every(d=>d&&WEEK_TYPES[d.t]&&inR(N(d.v),[0,300]))?wk.map(d=>({t:d.t,v:N(d.v)})):null;
   c.weekSrc=S.settingsRaw.weekSrc==="week"&&c.week?"week":"plan";
   const cx=S.settingsRaw.customEx;
-  c.customEx=Array.isArray(cx)?cx.slice(0,100).filter(e=>e&&typeof e.name==="string"&&EX_GROUPS[e.g]&&EX_EQUIP[e.eq]).map(e=>({name:clean(e.name,60),g:e.g,eq:e.eq,c:!!e.c,l:!!e.l,b:!!e.b,v:!!e.v,own:true})).filter(e=>e.name):[];
+  c.customEx=Array.isArray(cx)?cx.slice(0,100).filter(e=>e&&typeof e.name==="string"&&EX_GROUPS[e.g]&&EX_EQUIP[e.eq]).map(e=>({name:clean(e.name,60),g:e.g,eq:e.eq,c:!!e.c,l:!!e.l,b:!!e.b,v:!!e.v,s:!!e.s,own:true})).filter(e=>e.name):[];
   const ka=S.settingsRaw.kcalAdj;
   c.kcalAdj=Array.isArray(ka)?ka.filter(e=>e&&isDate(e.from)&&isFinite(N(e.adj))).map(e=>({from:e.from,adj:Math.max(-AD.max,Math.min(AD.max,Math.round(N(e.adj)/50)*50)),...(N(e.tdee)>0?{tdee:Math.round(N(e.tdee))}:{}),...(isFinite(N(e.rate))&&e.rate!=null?{rate:Math.round(N(e.rate)*100)/100}:{}),...(N(e.n)>0?{n:Math.round(N(e.n))}:{})})).sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:0).slice(-30):[];
   const rc=S.settingsRaw.race;c.race=rc&&typeof rc==="object"&&isDate(rc.date)?{date:rc.date,goal:inR(N(rc.goal),[4800,12600])?Math.round(N(rc.goal)):PACES_BASE_HM}:null;
@@ -4038,9 +4062,9 @@ function swOpen(i){
   const e=draft[i];if(!e)return;sw.i=i;sw.focus=document.activeElement;
   const cur=EXI.get(e.name)||null,g=cur?cur.g:null,eqOn=CFG.gymEquip||Object.keys(EX_EQUIP),have=new Set(draft.map(x=>x.name));
   const L=exAll().filter(x=>x.name!==e.name&&!have.has(x.name)&&(!g||x.g===g)&&eqOn.includes(x.eq))
-    .sort((a,b)=>(cur?(b.c===cur.c)-(a.c===cur.c):0)||((b.eq===(cur&&cur.eq))-(a.eq===(cur&&cur.eq)))).slice(0,40);
+    .sort((a,b)=>(cur&&cur.a?0:(a.a?1:0)-(b.a?1:0))||(cur?(!!b.s===!!cur.s)-(!!a.s===!!cur.s):0)||(cur?(b.c===cur.c)-(a.c===cur.c):0)||((b.eq===(cur&&cur.eq))-(a.eq===(cur&&cur.eq)))).slice(0,40);
   $("swTitle").textContent=e.name+" tauschen";$("swSub").textContent=g?EX_GROUPS[g]+" · gleiche Muskelgruppe":"Alle Übungen";
-  setHTML($("swList"),L.length?L.map(x=>h`<button class="fd" data-sw="${x.name}"><span class="n">${x.name}</span><span class="k">${EX_EQUIP[x.eq]}${x.c?" · Grundübung":""}</span></button>`):h`<div class="ex-last">Keine passende Alternative mit deinen Geräten gefunden.</div>`);
+  setHTML($("swList"),L.length?L.map(x=>h`<button class="fd" data-sw="${x.name}"><span class="n">${x.name}</span><span class="k">${EX_EQUIP[x.eq]}${x.c?" · Grundübung":""}${x.s?" · Halten":""}${x.a?" · Skill":""}</span></button>`):h`<div class="ex-last">Keine passende Alternative mit deinen Geräten gefunden.</div>`);
   $("swSheet").hidden=false;document.body.classList.add("sheet-open");
 }
 function swClose(){if($("swSheet").hidden)return;$("swSheet").hidden=true;document.body.classList.remove("sheet-open");if(sw.focus&&sw.focus.isConnected)sw.focus.focus({preventScroll:true})}
@@ -4071,7 +4095,7 @@ function paBuild(a){
   const names=split==="gk"?{push:"Ganzkörper A",pull:"Ganzkörper B",ok:"Ganzkörper C"}:{push:"Push",pull:"Pull",ok:"Beine & Bauch"};
   const prefEq=lvl==="neu"?["ma","ka","kh","kg","sm","lh","sz","kb"]:lvl==="erfahren"?["lh","kh","ka","ma","sm","sz","kg","kb"]:["ma","ka","kh","lh","sm","sz","kg","kb"];
   const used=new Set(),tpl={};
-  const pick=(g,c,tag)=>{let L=EX_DB.filter(x=>x.g===g&&eq.includes(x.eq)&&!used.has(x.name)&&!/Shrugs|Supersatz|Farmer|Thruster|Hyperextensions|Rückenstrecker|unterstützt/.test(x.name));
+  const pick=(g,c,tag)=>{let L=EX_DB.filter(x=>x.g===g&&eq.includes(x.eq)&&!used.has(x.name)&&!x.a&&!x.s&&!/Shrugs|Supersatz|Farmer|Thruster|Hyperextensions|Rückenstrecker|unterstützt/.test(x.name));
     const re={hinge:/Kreuzheben|Hip Thrust|Glute|Swings/,rear:/Reverse|Facepull/,curl:/Beinbeuger/}[tag],tm=x=>re&&re.test(x.name)?0:1;
     const C=L.filter(x=>!!x.c===!!c);const pool=(C.length?C:L).slice();
     pool.sort((x,y)=>tm(x)-tm(y)||prefEq.indexOf(x.eq)-prefEq.indexOf(y.eq));const r=pool[0]||null;if(r)used.add(r.name);return r};
