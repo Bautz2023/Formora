@@ -4148,22 +4148,19 @@ function runLine(r){const x=[],la=lapAvg(r),lh=lapHr(r);
    Abhaken nur lokal (ls "wu:Datum:Einheit")
    ===================================================================== */
 function warmupFor(k){
-  const G=new Set((TEMPLATES[k]?TEMPLATES[k].ex:[]).map(e=>groupOfEx(e[0])));
-  const L=["3 Min. locker Cardio (Rad, Crosstrainer oder Seilspringen)"];
-  if(["brust","schulter","trizeps"].some(g=>G.has(g)))L.push("10× Schulterkreisen vor und zurück","15× Band Pull-Aparts oder große Armkreise","8–10 langsame Liegestütze (auch auf Knien)");
-  if(["ruecken","bizeps"].some(g=>G.has(g)))L.push("10× Katze-Kuh","8–10× Schulterblatt-Züge an der Klimmzugstange","15× leichtes Band- oder Kabelrudern");
-  if(["beine","po","waden"].some(g=>G.has(g)))L.push("10× Kniebeugen mit Körpergewicht","je Seite 5× Ausfallschritt mit Oberkörper-Rotation","10× Glute Bridge");
-  if(G.has("bauch")||L.length<4)L.push("30 s Plank");
-  const first=TEMPLATES[k]&&TEMPLATES[k].ex[0];
-  if(first)L.push("Aufwärmsätze „"+first[0]+"“: 10 Wdh. mit ca. 50 %, 5 Wdh. mit ca. 70 %");
-  return L;
+  /* v67: kein Übungs-Warm-up – Laufband, Hängen, alles dehnen */
+  return ["5–10 Min. Laufband, locker (Gehen oder leichtes Traben, Puls nur leicht erhöht)",
+    "Hängen an der Klimmzugstange: 2 × 20–30 s, Schultern, Rücken und Arme lösen",
+    "Nacken und Schultern dehnen (je Seite 20–30 s)","Brust dehnen (Arm an Wand oder Türrahmen, je Seite 20–30 s)",
+    "Rücken und Latissimus dehnen (Kindhaltung oder an der Stange, 30 s)","Arme dehnen: Bizeps und Trizeps (je Seite 20–30 s)",
+    "Hüfte und Oberschenkel dehnen: Hüftbeuger, vorn, hinten (je Seite 30 s)","Waden dehnen (je Seite 20–30 s)"];
 }
 const wuKey=()=>"wu:"+($("gymDate").value||today())+":"+day;
 function renderWarmup(){
   const L=warmupFor(day),st=ls.get(wuKey())||{},n=L.filter((_,i)=>st[i]).length;
-  $("wuState").textContent=n===L.length?"✓ erledigt":(n?n+" / "+L.length:"ca. 6 Min.");
+  $("wuState").textContent=n===L.length?"✓ erledigt":(n?n+" / "+L.length:"ca. 15 Min.");
   if($("wuBody").contains(document.activeElement))return;
-  setHTML($("wuBody"),h`<div class="ex-last">Kurz und gezielt für „${TEMPLATES[day].name}“ – macht Gelenke warm und die ersten Sätze sicherer.</div>
+  setHTML($("wuBody"),h`<div class="ex-last">Vor „${TEMPLATES[day].name}“: erst Laufband, dann Hängen und alles locker dehnen – ohne Übungen vorab.</div>
     <div class="wul">${L.map((x,i)=>h`<label><input type="checkbox" data-wu="${i}"${raw(st[i]?" checked":"")}><span>${x}</span></label>`)}</div>`);
 }
 $("wuBody").addEventListener("change",e=>{const x=e.target;if(x.dataset.wu==null)return;const st=ls.get(wuKey())||{};if(x.checked)st[x.dataset.wu]=1;else delete st[x.dataset.wu];ls.set(wuKey(),st);
