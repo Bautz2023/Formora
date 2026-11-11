@@ -392,7 +392,7 @@ R('''<div class="card" id="rtCard">''', '''<div class="card" id="rtCard" hidden 
 
 # Neutrale Startwerte + Willkommen mit Plan-Assistent
 R('''const DEFAULT_CFG={height:184,age:31,protein:160,deficit:450,activity:1.5,goalKg:80,''',
-  '''const DEFAULT_CFG={height:175,age:30,protein:140,deficit:400,activity:1.5,goalKg:75,''')
+  '''const DEFAULT_CFG={height:0,age:0,protein:0,deficit:400,activity:1.5,goalKg:0,''')
 R('''const S={sessions:[],runs:[],body:[],meals:[],daily:[],checkins:[],start:"2026-10-19",settingsRaw:{}};''',
   '''const S={sessions:[],runs:[],body:[],meals:[],daily:[],checkins:[],start:(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")})(),settingsRaw:{}};''')
 R('''  <div id="dbNotice"''', '''  <div id="welcome" class="notice" hidden style="margin-top:14px"><b>Willkommen bei Formora!</b> Beantworte ein paar Fragen zu Ziel, Erfahrung und Trainingstagen – Formora erstellt dir daraus deinen persönlichen Trainingsplan und dein Kalorienziel. <button class="btn" data-pa-open="1" style="margin-top:8px;width:100%">Plan-Assistent starten</button> Du hast schon Daten aus der Claude-Version? Unter Einstellungen → „Import“ holst du sie in dein Konto. <button class="btn ghost" id="welcomeOk" style="margin-top:8px">Verstanden</button></div>
@@ -401,6 +401,39 @@ R('''  buildExIndex();renderDayChips();mix=loadMix();subscribe();render();initPh
   '''  buildExIndex();renderDayChips();mix=loadMix();subscribe();render();initPhoto();initAssets();bindAcct();
   if(!ls.get("welcomed")&&!db.has("settings"))$("welcome").hidden=false;
   $("welcomeOk").onclick=()=>{ls.set("welcomed",1);$("welcome").hidden=true};''')
+
+# ---------- Leeres Konto: nichts von Robin, alles startet bei 0 und wird selbst gestaltet ----------
+import re as _re
+_m=_re.search(r'let TEMPLATES=\{.*?\n\};\nconst GYM_ORDER', s, _re.S)
+assert _m, "TEMPLATES"
+s=s[:_m.start()]+'let TEMPLATES={push:{name:"Einheit A",ex:[]},pull:{name:"Einheit B",ex:[]},ok:{name:"Einheit C",ex:[]}};\nconst GYM_ORDER'+s[_m.end():]
+R('''const schedOf=mode=>CFG.sched||{gym:[0,2,4],run:mode==="hm"?[1,3,6]:[3,6]};''',
+  '''const schedOf=mode=>CFG.sched||{gym:[],run:[]};''')
+R('''  CFG=c;buildExIndex();renderDayChips();''', '''  c.profile=c.height>0&&c.age>0;CFG=c;buildExIndex();renderDayChips();''')
+R('''function targetFor(ds){
+  const c=cache();if(c.tg[ds])return c.tg[ds];''',
+  '''function targetFor(ds){
+  const c=cache();if(c.tg[ds])return c.tg[ds];
+  if(!CFG.profile||!c.bw.length)return c.tg[ds]={kg:0,bmr:0,alltag:0,gymK:0,runK:0,otherK:0,stepK:0,stepBase:0,km:0,tdee:0,adj:0,def:0,sur:0,total:0,p:0,f:0,c:0,src:"Profil und Gewicht fehlen"};''')
+R('''c.bw.length?N(c.bw[c.bw.length-1].kg):83}''', '''c.bw.length?N(c.bw[c.bw.length-1].kg):0}''')
+R('''$("fRem").textContent=f0(left);''', '''$("fRem").textContent=CFG.profile&&T.total?f0(left):"–";''')
+R('''$("fRem").parentElement.classList.toggle("over",left<0);''', '''$("fRem").parentElement.classList.toggle("over",left<0&&!!T.total);''')
+R('''$("fBar").style.width=Math.min(100,E.k/T.total*100)+"%";''', '''$("fBar").style.width=(T.total?Math.min(100,E.k/T.total*100):0)+"%";''')
+R('''$("fLeft").textContent=left>=0?"Noch "+f0(left)+" kcal übrig":f0(-left)+" kcal über dem Ziel";''',
+  '''$("fLeft").textContent=!T.total?"Ziel noch offen – Größe, Alter und Gewicht eintragen (Plan-Assistent)":left>=0?"Noch "+f0(left)+" kcal übrig":f0(-left)+" kcal über dem Ziel";''')
+R('''sug=CFG.goal==="cut"&&kgNow()<=CFG.goalKg;''', '''sug=CFG.goal==="cut"&&kgNow()>0&&CFG.goalKg>0&&kgNow()<=CFG.goalKg;''')
+R('''  if(t<first)return {...base,state:"wait"''', '''  if(!CFG.profile)return {...base,state:"data"};
+  if(t<first)return {...base,state:"wait"''')
+R('''$(id).value=fmtNum(CFG[k],CFG[k]%1?1:0).replace(/\\./g,"")''', '''$(id).value=CFG[k]?fmtNum(CFG[k],CFG[k]%1?1:0).replace(/\\./g,""):""''')
+R('''if(!d.ex.length){toast("„"+d.name+"“ braucht mindestens eine Übung");pe.day=k;peRender();return}''', '''''')
+R('''paceSrc="Standard (HM 1:58 h)";''', '''paceSrc="Standardwerte – nach einem 5-km-Test passend zu dir";''')
+R('''let f=1,src="Standard (HM 1:58 h)";''', '''let f=1,src="Standardwerte – nach einem 5-km-Test passend zu dir";''')
+R('''(raceOf()?raceOf().goal:7080)''', '''(raceOf()?raceOf().goal:null)''')
+R(''' Ziel 1:58 h (sub 2).</div>''', '''</div>''')
+R('''D===21.0975?"1:58:00":D===10?"54:00":"26:00"''', '''D===21.0975?"2:10:00":D===10?"1:00:00":"30:00"''')
+R('''"z. B. 1:58:00";
+  const T=parseTime''', '''"z. B. 2:10:00";
+  const T=parseTime''')
 
 open(out, "w", encoding="utf-8").write(s)
 print("ok", len(s))

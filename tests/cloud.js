@@ -122,6 +122,22 @@ async function backend(route){
   ok(await page.evaluate(()=>S.body.length===0),'Zweiter Benutzer: eigenes, leeres Konto');
   const leak=await page.evaluate(async()=>{const {data}=await SB.from('docs').select('col,id,data');return data.length});
   ok(leak===0,'Zweiter Benutzer kann die Zeilen des ersten nicht lesen');
+  // Neues Konto: alles leer, nichts von Robin
+  const E=await page.evaluate(()=>({h:CFG.height,a:CFG.age,p:CFG.protein,g:CFG.goalKg,ex:GYM_ORDER.map(k=>TEMPLATES[k].ex.length),names:GYM_ORDER.map(k=>TEMPLATES[k].name),sg:schedOf('base').gym.length,sr:schedOf('base').run.length,tg:targetFor(today()).total,kg:kgNow(),week:planDay(today()).gym}));
+  ok(E.h===0&&E.a===0&&E.p===0&&E.g===0&&E.kg===0,'Neues Konto: Größe, Alter, Eiweiß, Zielgewicht, Gewicht = 0');
+  ok(E.ex.every(n=>n===0)&&E.names.join()==='Einheit A,Einheit B,Einheit C','Neues Konto: leere Trainingsplan-Einheiten (kein Plan von Robin)');
+  ok(E.sg===0&&E.sr===0&&E.week===null&&E.tg===0,'Neues Konto: keine Trainings- und Lauftage, kcal-Ziel 0');
+  const bad=[];
+  for(const v of ['dash','gym','run','food','body']){await page.click('nav.tabs button[data-v="'+v+'"]');await page.waitForTimeout(250);
+    await page.evaluate(()=>document.querySelectorAll('details.card').forEach(d=>d.open=true));await page.waitForTimeout(150);
+    const tx=await page.evaluate(()=>document.querySelector('.view:not([hidden])').innerText);
+    if(/NaN|Infinity|undefined|\bnull\b/.test(tx))bad.push(v+': '+(tx.match(/.{0,30}(NaN|Infinity|undefined|\bnull\b).{0,20}/)||[''])[0].replace(/\n/g,' '));
+    {const m=tx.match(/.{0,40}(Robin|Chopin|Sulzfeld|1:58|184 cm|83,0).{0,30}/);if(m)bad.push(v+': persönlicher Wert … '+m[0].replace(/\n/g,' '))}
+    await page.screenshot({path:'shots/neu_'+v+'.png',fullPage:true})}
+  ok(bad.length===0,'Neues Konto: kein NaN/Infinity/undefined und keine persönlichen Werte in allen Tabs '+bad.join(' | '));
+  ok((await page.textContent('#v-food')).includes('Ziel noch offen')||await page.evaluate(()=>document.getElementById('fLeft').textContent.includes('offen')),'Essen: Hinweis, dass das Ziel noch offen ist');
+  ok(await page.evaluate(()=>trainCheck().state==='plan'),'Training prüfen: ohne Plan der Hinweis „Plan anlegen“');
+  await page.click('nav.tabs button[data-v="dash"]');await page.waitForTimeout(200);
   // Erster Benutzer wieder anmelden: Face ID gilt pro Benutzer
   await page.evaluate(()=>{document.getElementById('acctCard').open=true});await page.click('#acLogout');await page.waitForSelector('#agLogin',{state:'visible'});
   await page.fill('#agEmail','robin@test.de');await page.fill('#agPw','geheim123');await page.click('#agLogin');await page.waitForSelector('#authGate',{state:'hidden'});await page.waitForTimeout(400);

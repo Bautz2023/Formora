@@ -594,6 +594,7 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
     <div class="card" id="todayCard"></div>
 
     <div class="card" id="adDash" hidden></div>
+    <div class="card" id="trDash" hidden></div>
 
     <div class="card" id="stepsCard">
       <div class="row sb"><h2 data-ico="steps">Schritte</h2><div class="chips" id="stDay"><button class="chip sm ink" data-d="0" aria-pressed="true">Heute</button><button class="chip sm ink" data-d="-1" aria-pressed="false">Gestern</button></div></div>
@@ -874,6 +875,7 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
       <details class="tree fold"><summary>Diagramm anzeigen</summary><div class="foldin"><div class="ex-last">Geschätztes Maximalgewicht für 1 Wiederholung (Epley: kg × (1 + Wdh./30)), bester Satz je Einheit.</div><div id="cE1"></div></div></details>
     </div>
     <span class="label sect">Auswertung</span>
+    <div class="card" id="trCard"></div>
     <details class="card" id="coSets"><summary><h2 data-ico="dumbbell">Sätze pro Muskelgruppe</h2></summary><div class="cobody" id="coSetsBody"></div></details>
     <details class="card" id="coStall"><summary><h2 data-ico="trend">Fortschritt &amp; Stillstand</h2></summary><div class="cobody" id="coStallBody"></div></details>
   </section>
@@ -3433,6 +3435,81 @@ function renderCoach(){
 $("coWeekBody").onclick=e=>{const b=e.target.closest("[data-wk]");if(!b)return;co.wk=+b.dataset.wk;renderCoach()};
 
 /* =====================================================================
+   Training prüfen (v66): wertet die letzten 4 Wochen aus (Häufigkeit, Sätze pro Muskelgruppe, Fortschritt)
+   und schlägt Änderungen am Plan vor – mit „Übernehmen“ und Rückgängig
+   ===================================================================== */
+const TR={win:28,minSes:4,minSpan:14,bigLo:8,bigHi:22,smallLo:4,smallHi:14};
+let trList=[];
+const trDayOf=n=>GYM_ORDER.find(k=>TEMPLATES[k].ex.some(r=>r[0]===n));
+function trainCheck(t=today()){
+  const from=addDays(t,-TR.win),ses=S.sessions.filter(s=>s.date>from&&s.date<=t);
+  const first=S.sessions.length?[...S.sessions].sort(byDate)[0].date:null,span=first?dayNum(t)-dayNum(first):0;
+  const names=[...new Set(GYM_ORDER.flatMap(k=>TEMPLATES[k].ex.map(e=>e[0])))],base={ses:ses.length,span,list:[]};
+  if(!names.length)return {...base,state:"plan"};
+  if(ses.length<TR.minSes||span<TR.minSpan)return {...base,state:"data"};
+  const wkN=Math.min(TR.win,span)/7,avg=ses.length/wkN,pg=weekPlan(monday(t)).gym,L=[],mode=planInfo(t).mode,SC=schedOf(mode);
+  // Sätze pro Woche je Muskelgruppe
+  const done={},plan={};ses.forEach(x=>(x.exercises||[]).forEach(e=>{const g=groupOfEx(e.name);done[g]=(done[g]||0)+(e.sets||[]).filter(z=>N(z.reps)>0).length}));
+  GYM_ORDER.forEach(k=>TEMPLATES[k].ex.forEach(([n,c])=>{const g=groupOfEx(n);plan[g]=(plan[g]||0)+N(c)}));
+  const perWk=g=>(done[g]||0)/wkN,tot=Object.values(done).reduce((a,b)=>a+b,0)/wkN;
+  const I=names.map(stallInfo),down=I.filter(x=>x.state==="down"),stall=I.filter(x=>x.state==="stall"),up=I.filter(x=>x.state==="up");
+  // 1) Häufigkeit
+  if(pg>0&&avg<pg*.65){const target=Math.max(1,Math.round(avg));
+    L.push({kind:"warn",text:"Du trainierst im Schnitt "+fmtNum(avg,1)+"× pro Woche, geplant sind "+pg+"×. Ein Plan, den du wirklich schaffst, bringt mehr als ein voller, der ausfällt.",
+      ...(target<pg?{act:{k:"days",gym:SC.gym.slice(0,target),label:"Auf "+target+" Trainingstag"+(target===1?"":"e")+" ändern"}}:{})})}
+  // 2) Sätze pro Muskelgruppe
+  const V=[];
+  Object.keys(EX_GROUPS).filter(g=>g!=="ganz").forEach(g=>{const small=SMALL_GROUPS.has(g),lo=small?TR.smallLo:TR.bigLo,hi=small?TR.smallHi:TR.bigHi,pw=perWk(g),pl=plan[g]||0;
+    const rows=GYM_ORDER.flatMap(k=>TEMPLATES[k].ex.filter(r=>groupOfEx(r[0])===g).map(r=>({k,name:r[0],n:N(r[1])}))).sort((a,b)=>b.n-a.n);
+    if(pl>0&&pl<lo&&pw<lo){const r=rows.find(x=>x.n<6);if(r)V.push({w:(lo-pl)/lo,kind:"warn",text:EX_GROUPS[g]+": im Plan nur "+pl+" Sätze pro Woche (Ø "+fmtNum(pw,0)+" trainiert), sinnvoll sind ab "+lo+".",act:{k:"sets",day:r.k,name:r.name,delta:1,label:"+1 Satz bei „"+r.name+"“"}})}
+    else if(pw>hi){const r=rows.find(x=>x.n>2);V.push({w:(pw-hi)/hi,kind:"warn",text:EX_GROUPS[g]+": Ø "+fmtNum(pw,0)+" Sätze pro Woche – über ca. "+hi+" bringt kaum mehr Reiz, kostet aber Erholung.",...(r?{act:{k:"sets",day:r.k,name:r.name,delta:-1,label:"−1 Satz bei „"+r.name+"“"}}:{})})}
+    else if(!small&&!pl&&!done[g]&&["brust","ruecken","schulter","beine"].filter(x=>(plan[x]||0)>0).length>=2)V.push({w:.5,kind:"info",text:EX_GROUPS[g]+" kommt in deinem Plan nicht vor. Für ein ausgewogenes Training eine Übung ergänzen (Plan anpassen → Muskelgruppe „"+EX_GROUPS[g]+"“)."})});
+  V.sort((a,b)=>b.w-a.w).slice(0,3).forEach(x=>{delete x.w;L.push(x)});
+  // 3) Fortschritt, Entlastung
+  const sl=avg2(S.daily.filter(d=>d.date>addDays(t,-14)&&N(d.sleep)>0).map(d=>N(d.sleep)));
+  if(down.length>=2||(down.length+stall.length>=3&&!up.length))
+    L.push({kind:"warn",text:"Mehrere Übungen stagnieren oder werden schwächer ("+[...down,...stall].slice(0,4).map(x=>x.name).join(", ")+"). Plane eine Entlastungswoche: gleiche Übungen, einen Satz weniger und etwa 10 % weniger Gewicht – danach neu steigern."+(sl&&sl<3?" Dein Schlaf liegt bei Ø "+fmtNum(sl,1)+"/5 – auch das bremst.":"")});
+  if(CFG.goal==="cut"&&down.length>=2&&CFG.deficit>=200)
+    L.push({kind:"warn",text:"Die Kraft sinkt, während du abnimmst. Ein kleineres Defizit schützt die Muskeln: von "+f0(CFG.deficit)+" auf "+f0(CFG.deficit-100)+" kcal.",act:{k:"deficit",value:CFG.deficit-100,label:"Defizit auf "+f0(CFG.deficit-100)+" kcal"}});
+  stall.filter(x=>x.since>=3&&!down.includes(x)).slice(0,2).forEach(x=>L.push({kind:"info",text:x.name+": seit "+(x.since+1)+" Einheiten kein neuer Bestwert. Variante wechseln („Tauschen“ im Training) oder den Wiederholungsbereich ändern."}));
+  // 4) Alles gut: mehr Training möglich
+  if(!L.length&&pg>0&&pg<5&&avg>=pg*.95&&span>=21&&(up.length>=Math.max(1,Math.ceil(I.filter(x=>x.n>0).length*.3)))){
+    const gd=SC.gym,rd=SC.run,free=[0,1,2,3,4,5,6].filter(d=>!gd.includes(d)&&!rd.includes(d));
+    const dist=d=>Math.min(...gd.map(x=>{const a=Math.abs(x-d);return Math.min(a,7-a)}),9),pick=free.sort((a,b)=>dist(b)-dist(a))[0];
+    if(pick!=null)L.push({kind:"info",text:"Du schaffst alle "+pg+" Einheiten und wirst stärker. Wenn du magst, ist ein weiterer Trainingstag möglich.",act:{k:"days",gym:[...gd,pick].sort((a,b)=>a-b),label:"Trainingstag am "+WD[pick]+" ergänzen"}})}
+  return {...base,state:"ok",avg,pg,tot,up:up.length,stall:stall.length+down.length,list:L};
+}
+const avg2=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+function renderTrain(){
+  const a=trainCheck();trList=a.list;let body;
+  if(a.state==="plan")body=h`<div class="ex-last">Lege zuerst deinen Trainingsplan an („Trainingsplan anpassen“ oder der Plan-Assistent) – dann wertet Formora dein Training aus.</div>`;
+  else if(a.state==="data")body=h`<div class="ex-last">Noch zu wenig Training: ${a.ses} von ${TR.minSes} Einheiten in den letzten 4 Wochen${a.span<TR.minSpan?" (die erste Einheit muss mindestens "+TR.minSpan+" Tage her sein)":""}. Danach prüft Formora Häufigkeit, Sätze pro Muskelgruppe und Fortschritt und schlägt Änderungen vor.</div>`;
+  else body=h`<div class="minis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="mini"><span>Einheiten / Woche</span><b>Ø ${fmtNum(a.avg,1)}</b><span>Plan ${a.pg}</span></div>
+      <div class="mini"><span>Sätze / Woche</span><b>Ø ${fmtNum(a.tot,0)}</b><span>alle Gruppen</span></div>
+      <div class="mini"><span>Fortschritt</span><b>${a.up} ▲ · ${a.stall} ▼</b><span>verbessert · Stillstand</span></div></div>
+    ${a.list.length?a.list.map((x,i)=>h`<div class="cobox${x.kind==="warn"?" warn":""}"><div>${x.text}</div>${x.act&&db?h`<div class="row"><button class="btn" data-tra="${i}" style="flex:1">${x.act.label}</button></div>`:""}</div>`)
+      :h`<div class="notice">Passt – Häufigkeit, Sätze pro Muskelgruppe und Fortschritt sind in Ordnung. Nichts ändern.</div>`}`;
+  const html=h`<div class="row sb"><h2>${ico("dumbbell")}Training prüfen</h2><span class="label">letzte 4 Wochen</span></div>${body}`;
+  setHTML($("trCard"),html);
+  const show=a.state==="ok"&&a.list.some(x=>x.kind==="warn");$("trDash").hidden=!show;setHTML($("trDash"),show?html:"");
+}
+async function trApply(i,btn){
+  const a=(trList[i]||{}).act;if(!a||!needDb())return;const prev=tidy(S.settingsRaw);let patch;
+  if(a.k==="sets"){const gp=tidy(S.settingsRaw.gymPlan||{});
+    GYM_ORDER.forEach(k=>{const t=gp[k];if(!t||!Array.isArray(t.ex)||!t.ex.length)gp[k]={name:TEMPLATES[k].name,ex:TEMPLATES[k].ex.map(r=>r.slice())}});
+    const r=gp[a.day]&&gp[a.day].ex.find(x=>x[0]===a.name);if(!r){toast("Übung nicht mehr im Plan");return}
+    r[1]=Math.max(1,Math.min(12,N(r[1])+a.delta));patch={gymPlan:gp}}
+  else if(a.k==="days")patch={sched:{gym:a.gym,run:schedOf(planInfo(today()).mode).run}};
+  else if(a.k==="deficit"&&inR(a.value,CFG_RANGE.deficit))patch={deficit:a.value};
+  else return;
+  const run=async()=>{const next={...S.settingsRaw,start:S.start,...patch};await db.doc("settings/main").set(tidy(next));applySettings(next);invalidate();scheduleRender();
+    toast("Plan angepasst",async()=>{await db.doc("settings/main").set(prev);applySettings(prev);invalidate();scheduleRender()},8000)};
+  if(btn)await withBusy(btn,run);else await run();
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-tra]");if(b)trApply(+b.dataset.tra,b)});
+
+/* =====================================================================
    Einstellungen, Export, Import
    ===================================================================== */
 function applySettings(d){
@@ -3468,6 +3545,12 @@ async function saveSettings(patch){
   try{await db.doc("settings/main").set(tidy(next));applySettings(next);invalidate();scheduleRender();toast("Einstellungen gespeichert")}
   catch(e){toast(errMsg(e))}
 }
+/** Export: auch die Werte, die nur als Standard galten (Plan, Trainingswoche, Profil), damit sie in einem neuen Konto ankommen */
+function exportSettings(){const r=S.settingsRaw,gp={...(r.gymPlan||{})};
+  GYM_ORDER.forEach(k=>{const t=gp[k];if(!t||!Array.isArray(t.ex)||!t.ex.length)gp[k]={name:TEMPLATES[k].name,ex:TEMPLATES[k].ex}});
+  const base={sched:schedOf(planInfo(today()).mode)};
+  if(CFG.height>0)base.height=CFG.height;if(CFG.age>0)base.age=CFG.age;if(CFG.protein>0)base.protein=CFG.protein;if(CFG.goalKg>0)base.goalKg=CFG.goalKg;
+  return {...base,...r,gymPlan:gp}}
 const SET_IDS={sHeight:"height",sAge:"age",sGoalKg:"goalKg",sProtein:"protein",sDeficit:"deficit",sActivity:"activity",sSteps:"stepGoal"};
 function renderSettings(){
   if(document.activeElement!==$("startDate"))$("startDate").value=S.start;
@@ -3481,7 +3564,7 @@ $("saveSet").onclick=()=>withBusy($("saveSet"),async()=>{
 });
 $("startDate").onchange=()=>{const v=$("startDate").value;if(!isDate(v))return;S.start=monday(v);openWeeks.clear();saveSettings({start:S.start})};
 async function exportData(){
-  const data={app:"gym-lauf-log",version:2,exportedAt:new Date().toISOString(),data:{sessions:S.sessions,runs:S.runs,body:S.body,meals:S.meals,foods:FOODS,fooddb:FOODDB,daily:S.daily,checkins:S.checkins,exnotes:EXNOTES,coach:COACH,settings:S.settingsRaw}};
+  const data={app:"gym-lauf-log",version:2,exportedAt:new Date().toISOString(),data:{sessions:S.sessions,runs:S.runs,body:S.body,meals:S.meals,foods:FOODS,fooddb:FOODDB,daily:S.daily,checkins:S.checkins,exnotes:EXNOTES,coach:COACH,settings:exportSettings()}};
   const json=JSON.stringify(data,null,1),name="gym-lauf-log_"+today()+".json";
   let dl=null;try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(e){}
   if(dl){try{await dl.save({filename:name,data:new Blob([json],{type:"application/json"})});toast("Export gespeichert");return}
@@ -3543,7 +3626,7 @@ function render(){
   invalidate();applyPaces();const t=today(),thisMon=monday(t),I=planInfo(t),P=I.P,wk=I.wk;
   setHTML($("weekBadge"),I.mode==="hm"?h`HM-Woche <b>${wk}</b> / 12`:h`Aufbau <b>${wk}</b> / 4`);
   document.querySelectorAll(".paceHint").forEach(x=>x.textContent=paceHintTxt());
-  renderToday();renderCoachCheck();renderPaCard();renderWarmup();renderRecovery();renderSteps();renderSettings();renderCheck();renderAdapt();renderCoach();if(!$("wkSet").contains(document.activeElement)||document.activeElement.tagName!=="INPUT")renderWkSet();
+  renderToday();renderCoachCheck();renderPaCard();renderWarmup();renderRecovery();renderSteps();renderSettings();renderCheck();renderAdapt();renderTrain();renderCoach();if(!$("wkSet").contains(document.activeElement)||document.activeElement.tagName!=="INPUT")renderWkSet();
   // Kacheln
   const wkRuns=S.runs.filter(r=>monday(r.date)===thisMon),km=sum(wkRuns.map(r=>N(r.km))),PW=weekPlan(thisMon);
   setHTML($("tKm"),h`${fmtNum(km,1)}<small>km</small>`);
