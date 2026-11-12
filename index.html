@@ -567,6 +567,7 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
 .panum{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}.panum .chip{justify-content:center;min-height:44px;padding-inline:0}
 .paprog{height:4px;background:var(--line);border-radius:9px}.paprog i{display:block;height:4px;border-radius:9px;background:var(--accent)}
 .pasum{display:flex;flex-direction:column;gap:6px;font-size:14px}.pasum ul{margin:0;padding-left:18px}
+  .km-in{width:64px;min-height:36px;padding:4px 8px;border:1px solid var(--line,#ccc);border-radius:8px;background:var(--bg2,transparent);color:inherit;font:inherit;text-align:center}
 </style>
 
 <div class="wrap">
@@ -1381,6 +1382,9 @@ function planDay(ds){
   if(role==="long"&&!isRace)run=rs===1?{kind:"long",role,type:"Long Run",km:P.long.km,text:(/^\d/.test(P.lt)?"Long Run ":"")+P.lt+" · "+paceTxt(PACES.long)+"/km, Puls ≤ "+PACES.long.hr}
     :{kind:"long",role,type:"Long Run",km:sk(P.long.km),scaled:true,text:longTxt(sk(P.long.km))};
   if(isRace&&ds===I.race.date)run={kind:"long",role:"race",type:"Wettkampf",km:21.1,text:"Halbmarathon · Ziel "+fmtHM(I.race.goal)+" h · "+paceTxt(PACES.race)+"/km"};
+  // Eigene Länge (daily.runKm, optional): ersetzt die geplanten km, Text und kcal-Ziel passen sich an
+  const dl0=dailyOn(ds);
+  if(dl0&&run&&run.role!=="race"&&N(dl0.runKm)>0){const k=N(dl0.runKm);run={...run,km:k,adjusted:true,text:run.text.replace(/\d[\d.,]*( km)/,fmtKm(k)+"$1")}}
   // Ausgesetzt (daily.skipGym / daily.skipRun): Tag zählt wie ein Ruhetag, auch fürs kcal-Ziel
   const dl=dailyOn(ds),skip={},added={};let g=gym;
   if(dl&&dl.skipGym&&g){skip.gym=g;g=null}
@@ -1792,7 +1796,7 @@ function endEdit(silent){
 function goTo(kind){
   const t=today(),d=planDay(t);
   if(kind==="gym"){if(editing&&editing.kind==="sessions")endEdit(true);touched.gymDate=false;refreshDates();if(d.gym&&d.gym!==day){saveDraftNow();setDay(d.gym)}showTab("gym")}
-  else if(kind==="run"){if(editing&&editing.kind==="runs")endEdit(true);touched.runDate=false;refreshDates();setRunType(d.run?d.run.type:"Easy");showTab("run")}
+  else if(kind==="run"){if(editing&&editing.kind==="runs")endEdit(true);touched.runDate=false;refreshDates();setRunType(d.run?d.run.type:"Easy");if(d.run&&!$("runKm").value)$("runKm").value=fmtKm(d.run.km).replace(".",",");livePace();showTab("run")}
   else showTab(kind);
 }
 
@@ -3149,12 +3153,25 @@ async function setAdd(o,ds=today()){
   const before=targetFor(ds).total,cur=dailyOn(ds)||{},prev={addGym:cur.addGym,addRun:cur.addRun,addRunKind:cur.addRunKind};
   let patch,what;
   if(o.addGym){patch={addGym:o.addGym};what=TEMPLATES[o.addGym].name+" hinzugefügt"}
-  else if(o.addRun){const lg=o.addRun==="long";patch={addRun:ADD_RUN[lg?"long":"easy"],addRunKind:lg?"long":"easy"};what=(lg?"Long Run ":"Lauf ")+ADD_RUN[lg?"long":"easy"]+" km hinzugefügt"}
+  else if(o.addRun){const lg=o.addRun==="long",ip=$("addKm"),v=ip?num(ip.value):null;
+    if(v!=null&&!inR(v,LIMITS.runKm)){toast("Distanz muss zwischen 0,5 und 60 km liegen");return}
+    const k=v!=null?Math.round(v*10)/10:ADD_RUN[lg?"long":"easy"];
+    patch={addRun:k,addRunKind:lg?"long":"easy"};what=(lg?"Long Run ":"Lauf ")+fmtKm(k)+" km hinzugefügt"}
   else if(o.unadd==="gym"){patch={addGym:undefined};what="Gym entfernt"}
   else{patch={addRun:undefined,addRunKind:undefined};what="Lauf entfernt"}
   await saveDaily(patch,ds);invalidate();
   const after=targetFor(ds).total;
   toast(what+" · Kalorienziel "+f0(after)+" kcal ("+(after-before>0?"+":"")+f0(after-before)+")",()=>saveDaily(prev,ds),6000);
+  scheduleRender();
+}
+/** Lauflänge für einen Tag ändern: geplanter Lauf → daily.runKm, hinzugefügter Lauf → daily.addRun */
+async function setRunKm(km,ds=today()){
+  const d=planDay(ds),cur=dailyOn(ds)||{},prev={runKm:cur.runKm,addRun:cur.addRun},before=targetFor(ds).total;
+  if(km!=null&&!inR(km,LIMITS.runKm)){toast("Distanz muss zwischen 0,5 und 60 km liegen");return}
+  const v=km==null?undefined:Math.round(km*10)/10;
+  await saveDaily(d.added.run?(v==null?{addRun:undefined,addRunKind:undefined}:{addRun:v}):{runKm:v},ds);invalidate();
+  const after=targetFor(ds).total;
+  toast((v==null?"Lauf wieder wie geplant":"Lauf "+fmtKm(v)+" km")+" · Kalorienziel "+f0(after)+" kcal ("+(after-before>0?"+":"")+f0(after-before)+")",()=>saveDaily(prev,ds),6000);
   scheduleRender();
 }
 async function setSkip(k,on,ds=today()){
@@ -3233,6 +3250,7 @@ function renderToday(){
     parts.push(h`<div><span class="label">Lauf · ${typeLbl(R.type)}${d.added.run?" · hinzugefügt":""}</span><div style="font-weight:600;margin-top:2px">${R.title} · ca. ${fmtKm(R.km)} km</div></div>
       <details class="tree" data-tree="run"${raw(todayOpen.has("run")?" open":"")}><summary>Ablauf anzeigen <span>Warm-up · Hauptteil · Cool-down</span></summary>
       <dl class="steps">${R.steps.map(([a,b])=>h`<dt>${a}</dt><dd>${b}</dd>`)}</dl></details>
+      ${done.length?"":db?h`<div class="addtr"><span class="label">Länge heute</span><div class="chips"><input id="rkIn" class="km-in" inputmode="decimal" aria-label="Kilometer heute" value="${fmtKm(R.km).replace(".",",")}"> km <button class="chip sm" data-rk="set">Übernehmen</button>${d.run.adjusted?h`<button class="chip sm" data-rk="reset">Wie geplant</button>`:""}</div></div>`:""}
       ${done.length?h`<div class="ex-last" style="color:var(--good)">✓ eingetragen: ${done.map(r=>typeLbl(r.type)+" "+fmtKm(r.km)+" km in "+fmtTime(r.sec)).join(", ")}</div>`:db?(d.added.run?h`<button class="chip sm" data-unadd="run">Lauf wieder entfernen</button>`:h`<button class="chip sm" data-skip="run">Lauf heute aussetzen</button>`):""}`)}
   if(d.skip.run)parts.push(h`<div class="skipped"><span><span class="label">Lauf · ausgesetzt</span><b>${d.skip.run.text.split(" · ")[0]}</b></span>${db?h`<button class="chip sm" data-unskip="run">Doch laufen</button>`:""}</div>`);
   if(d.gym){const tp=TEMPLATES[d.gym],done=S.sessions.some(s=>s.date===t);go="gym";goTxt="Gym eintragen";
@@ -3243,7 +3261,7 @@ function renderToday(){
       ${!done&&db?(d.added.gym?h`<button class="chip sm" data-unadd="gym">Gym wieder entfernen</button>`:h`<button class="chip sm" data-skip="gym">Gym heute aussetzen</button>`):""}`)}
   if(d.skip.gym)parts.push(h`<div class="skipped"><span><span class="label">Gym · ausgesetzt</span><b>${TEMPLATES[d.skip.gym].name}</b></span>${db?h`<button class="chip sm" data-unskip="gym">Doch trainieren</button>`:""}</div>`);
   {const canG=db&&!d.gym&&!d.skip.gym&&!S.sessions.some(s=>s.date===t),canR=db&&!d.run&&!d.skip.run&&!S.runs.some(r=>r.date===t),nx=pickGymDay();
-   if(canG||canR)parts.push(h`<div class="addtr"><span class="label">Training hinzufügen</span><div class="chips">${canG?h`<button class="chip sm" data-add-gym="${nx}">+ Gym · ${TEMPLATES[nx].name}</button>`:""}${canR?h`<button class="chip sm" data-add-run="easy">+ Lauf ca. ${ADD_RUN.easy} km</button><button class="chip sm" data-add-run="long">+ Long Run ${ADD_RUN.long} km</button>`:""}</div></div>`)}
+   if(canG||canR)parts.push(h`<div class="addtr"><span class="label">Training hinzufügen</span><div class="chips">${canG?h`<button class="chip sm" data-add-gym="${nx}">+ Gym · ${TEMPLATES[nx].name}</button>`:""}${canR?h`<input id="addKm" class="km-in" inputmode="decimal" aria-label="Kilometer" placeholder="${ADD_RUN.easy}"> km <button class="chip sm" data-add-run="easy">+ Lauf</button><button class="chip sm" data-add-run="long">+ Long Run</button>`:""}</div></div>`)}
   if(!d.run&&!d.gym)parts.push(h`<div class="ex-last">${d.skip.gym||d.skip.run?"Heute Pause – Kalorienziel ist auf Ruhetag angepasst ("+f0(T.total)+" kcal).":"Ruhetag – locker gehen, Mobility, gut essen und schlafen."}</div>`);
   const rest=T.total-E.k,G=goalDist();
   const rg=(p,val,unit,lab,sub,over)=>h`<div class="rg"><div class="rw">${ringSvg(p,{over})}<div class="rv"><span>${val}<small>${unit}</small></span></div></div><div class="rl">${lab}<br><b>${sub}</b></div></div>`;
@@ -3255,6 +3273,9 @@ function renderToday(){
   parts.push(h`<button class="btn wide${go==="gym"?" gym":""}" data-go="${go}">Jetzt eintragen · ${goTxt.replace(" eintragen","")}</button>`);
   setHTML($("todayCard"),parts);
   $("todayCard").querySelectorAll("[data-skip],[data-unskip]").forEach(b=>b.onclick=()=>withBusy(b,()=>setSkip(b.dataset.skip||b.dataset.unskip,!!b.dataset.skip)));
+  $("todayCard").querySelectorAll("[data-rk]").forEach(b=>b.onclick=()=>withBusy(b,()=>{
+    if(b.dataset.rk==="reset"){const d=planDay(today());return d.added.run?setAdd({unadd:"run"}):setRunKm(null)}
+    const v=num($("rkIn").value);if(v==null){toast("Kilometer eintragen");return}return setRunKm(v)}));
   $("todayCard").querySelectorAll("[data-add-gym],[data-add-run],[data-unadd]").forEach(b=>b.onclick=()=>withBusy(b,()=>setAdd(b.dataset)));
   $("todayCard").querySelectorAll("details.tree").forEach(d=>d.ontoggle=()=>{d.open?todayOpen.add(d.dataset.tree):todayOpen.delete(d.dataset.tree)});
 }

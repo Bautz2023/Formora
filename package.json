@@ -1,6 +1,6 @@
 {
   "name": "formora",
-  "version": "67.0.0",
+  "version": "68.0.0",
   "private": true,
   "description": "Formora – Fitness-App (Training, Laufen, Ernährung) mit Konten über Supabase",
   "scripts": {
