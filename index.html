@@ -594,9 +594,6 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
   <section class="view" id="v-dash" role="tabpanel" aria-labelledby="tab-dash">
     <div class="card" id="todayCard"></div>
 
-    <div class="card" id="adDash" hidden></div>
-    <div class="card" id="trDash" hidden></div>
-
     <div class="card" id="stepsCard">
       <div class="row sb"><h2 data-ico="steps">Schritte</h2><div class="chips" id="stDay"><button class="chip sm ink" data-d="0" aria-pressed="true">Heute</button><button class="chip sm ink" data-d="-1" aria-pressed="false">Gestern</button></div></div>
       <div class="stepbox"><div class="rw"><span id="stRing"></span><span class="ic" data-ico-raw="steps"></span></div>
@@ -606,16 +603,6 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
       <details class="tree fold"><summary>Verlauf 14 Tage anzeigen</summary><div class="foldin"><div class="chart" id="cSteps"></div></div></details>
     </div>
 
-    <details class="card" id="coachCard" open>
-      <summary><h2 data-ico="heart">Coach-Check</h2><span class="label" id="coachState"></span></summary>
-      <div id="coachBody"></div>
-    </details>
-
-    <div class="card" id="habCard" hidden style="display:none">
-      <div class="row sb"><h2 data-ico="flame">Gewohnheiten</h2><span class="label" id="habState"></span></div>
-      <div class="habs" id="habList"></div>
-      <details class="tree fold" id="habEditBox"><summary>Gewohnheiten bearbeiten</summary><div class="foldin" id="habEdit"></div></details>
-    </div>
 
     <div class="card" id="recovCard">
       <div class="row sb"><h2 data-ico="moon">Erholung heute</h2><span class="label" id="recovState"></span></div>
@@ -624,26 +611,47 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
       <div class="ex-last" id="recovHk"></div>
     </div>
 
+    <div class="card" id="adDash" hidden></div>
+
+    <div class="card" id="habCard" hidden style="display:none">
+      <div class="row sb"><h2 data-ico="flame">Gewohnheiten</h2><span class="label" id="habState"></span></div>
+      <div class="habs" id="habList"></div>
+      <details class="tree fold" id="habEditBox"><summary>Gewohnheiten bearbeiten</summary><div class="foldin" id="habEdit"></div></details>
+    </div>
+
     <div class="tiles">
       <div class="tile wide"><span class="label">Laufen diese Woche</span><span class="num" id="tKm">0<small>km</small></span><span class="sub" id="tKmSub">Ziel –</span><div class="meter"><i id="tKmBar" style="width:0;background:var(--run)"></i></div></div>
-      <div class="tile"><span class="label">Gewicht Ø 7 Tage</span><span class="num" id="tW">–<small>kg</small></span><span class="sub" id="tWSub">Ziel ca. 80 kg</span></div>
+      <div class="tile" hidden style="display:none"><span class="label">Gewicht Ø 7 Tage</span><span class="num" id="tW">–<small>kg</small></span><span class="sub" id="tWSub">Ziel ca. 80 kg</span></div>
       <div class="tile"><span class="label" id="tLeftL">Nächster 5-km-Test</span><span class="num" id="tLeft">–<small>Wo.</small></span><span class="sub" id="tLeftS"></span></div>
     </div>
 
-    <div class="card">
+    <div class="card" hidden style="display:none">
       <div class="row sb"><h2 data-ico="route"><span id="planTitle">Laufplan diese Woche</span></h2><span class="label" id="planKm"></span></div>
       <dl class="planweek" id="planWeek"></dl>
       <div class="ex-last paceHint"></div>
     </div>
 
-    <div class="card chart"><h2 data-ico="scale">Körpergewicht</h2><div id="wTrend"></div><details class="tree fold"><summary>Diagramm anzeigen</summary><div class="foldin"><div id="cWeight"></div></div></details></div>
+    <div class="card chart" hidden style="display:none"><h2 data-ico="scale">Körpergewicht</h2><div id="wTrend"></div><details class="tree fold"><summary>Diagramm anzeigen</summary><div class="foldin"><div id="cWeight"></div></div></details></div>
     <div class="card chart"><h2 data-ico="dumbbell">Trainingsvolumen</h2><details class="tree fold"><summary>Diagramm anzeigen</summary><div class="foldin"><div class="ex-last">kg × Wiederholungen pro Einheit · Klimmzüge und Beinheben mit Körpergewicht + Zusatzgewicht</div><div id="cVol"></div></div></details></div>
+
+    <div class="card" id="trDash" hidden></div>
+
+    <details class="card" id="coachCard" open>
+      <summary><h2 data-ico="heart">Coach-Check</h2><span class="label" id="coachState"></span></summary>
+      <div id="coachBody"></div>
+    </details>
 
     <details class="card" id="planCard">
       <summary><h2 data-ico="route">Trainingsplan</h2></summary>
       <div class="ex-last"><span class="paceHint"></span> · ✓ = eingetragen</div>
       <div id="planList"></div>
     </details>
+
+    <div class="card" id="wkTakeCard">
+      <div class="row sb"><h2 data-ico="dumbbell">Plan aus dieser Woche</h2></div>
+      <div class="ex-last" id="wkTakeInfo"></div>
+      <button class="btn ghost" id="wkTake">Übungen und Sätze übernehmen</button>
+    </div>
 
     <div class="card" id="paCard">
       <div class="row sb"><h2 data-ico="checkin">Plan-Assistent</h2><span class="label" id="paState"></span></div>
@@ -3530,6 +3538,33 @@ async function trApply(i,btn){
 }
 document.addEventListener("click",e=>{const b=e.target.closest("[data-tra]");if(b)trApply(+b.dataset.tra,b)});
 
+/** Diese Woche (Mo bis heute): letzte eingetragene Einheit je Tag (push/pull/ok) als Planvorlage */
+function weekTemplates(){
+  const m=monday(today()),out={};
+  GYM_ORDER.forEach(k=>{const ss=S.sessions.filter(x=>x.day===k&&x.date>=m&&x.date<=today()&&Array.isArray(x.exercises)&&x.exercises.length).sort(byDate);
+    const ses=ss[ss.length-1];if(!ses)return;
+    const old=new Map(TEMPLATES[k].ex.map(r=>[r[0],r]));
+    const ex=ses.exercises.filter(e=>e&&e.name&&Array.isArray(e.sets)&&e.sets.length).map(e=>{
+      const reps=e.sets.map(z=>N(z.reps)).filter(v=>v>0),o=old.get(e.name);
+      const tg=o?o[2]:reps.length?(Math.min(...reps)===Math.max(...reps)?String(Math.min(...reps)):Math.min(...reps)+"–"+Math.max(...reps)):"8–12";
+      return [e.name,Math.max(1,Math.min(12,e.sets.length)),tg]});
+    if(ex.length)out[k]={name:TEMPLATES[k].name,ex,date:ses.date}});
+  return out;
+}
+function renderWkTake(){
+  const W=weekTemplates(),ks=Object.keys(W);
+  $("wkTake").hidden=!ks.length;
+  $("wkTakeInfo").textContent=ks.length?ks.map(k=>W[k].name+": "+W[k].ex.length+" Übungen, "+W[k].ex.reduce((a,r)=>a+r[1],0)+" Sätze ("+fmtD(W[k].date)+")").join(" · ")+" – ersetzt die Vorlage im Plan.":"Noch keine Einheit diese Woche eingetragen. Trag Push oder Pull ein, dann kannst du Übungen und Sätze in den Plan übernehmen.";
+}
+$("wkTake").onclick=()=>withBusy($("wkTake"),async()=>{
+  const W=weekTemplates(),ks=Object.keys(W);if(!ks.length||!needDb())return;
+  const prev=tidy(S.settingsRaw),gp=tidy(S.settingsRaw.gymPlan||{});
+  GYM_ORDER.forEach(k=>{const t=gp[k];if(!t||!Array.isArray(t.ex)||!t.ex.length)gp[k]={name:TEMPLATES[k].name,ex:TEMPLATES[k].ex.map(r=>r.slice())}});
+  ks.forEach(k=>{gp[k]={...gp[k],ex:W[k].ex}});
+  const next={...S.settingsRaw,start:S.start,gymPlan:gp};
+  await db.doc("settings/main").set(tidy(next));applySettings(next);invalidate();scheduleRender();
+  toast("Plan aus dieser Woche übernommen ("+ks.map(k=>TEMPLATES[k].name).join(", ")+")",async()=>{await db.doc("settings/main").set(prev);applySettings(prev);invalidate();scheduleRender()},8000)});
+
 /* =====================================================================
    Einstellungen, Export, Import
    ===================================================================== */
@@ -3647,7 +3682,7 @@ function render(){
   invalidate();applyPaces();const t=today(),thisMon=monday(t),I=planInfo(t),P=I.P,wk=I.wk;
   setHTML($("weekBadge"),I.mode==="hm"?h`HM-Woche <b>${wk}</b> / 12`:h`Aufbau <b>${wk}</b> / 4`);
   document.querySelectorAll(".paceHint").forEach(x=>x.textContent=paceHintTxt());
-  renderToday();renderCoachCheck();renderPaCard();renderWarmup();renderRecovery();renderSteps();renderSettings();renderCheck();renderAdapt();renderTrain();renderCoach();if(!$("wkSet").contains(document.activeElement)||document.activeElement.tagName!=="INPUT")renderWkSet();
+  renderToday();renderCoachCheck();renderPaCard();renderWarmup();renderRecovery();renderSteps();renderSettings();renderCheck();renderAdapt();renderTrain();renderWkTake();renderCoach();if(!$("wkSet").contains(document.activeElement)||document.activeElement.tagName!=="INPUT")renderWkSet();
   // Kacheln
   const wkRuns=S.runs.filter(r=>monday(r.date)===thisMon),km=sum(wkRuns.map(r=>N(r.km))),PW=weekPlan(thisMon);
   setHTML($("tKm"),h`${fmtNum(km,1)}<small>km</small>`);
