@@ -127,6 +127,20 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    {const o=await overflow(page);ok(o<=0,'Gym-Tab ohne Überlauf ('+o+'px)')}
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
+  console.log('Gym: Individuell startet mit leerer Vorlage');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[0,2,4],run:[]}});await tab(page,'gym');
+   ok((await page.$$('#exList .ex')).length>=5,'Fester Plan: Plan-Übungen vorhanden');
+   await page.fill('#kg-0-0','55');await page.fill('#r-0-0','9');await page.waitForTimeout(500);
+   await page.click('#gymMode [data-gm="free"]');await page.waitForTimeout(500);
+   const n1=await page.evaluate(()=>draft.map(e=>e.name));
+   ok(n1.length===1&&(await page.$$('#exList .ex')).length===1,'Individuell: nur die Übung mit eingetragenen Werten bleibt, alle Plan-Übungen ohne Werte sind weg ('+n1.join(', ')+')');
+   await page.evaluate(()=>{draft=[];renderEx();saveDraftNow()});
+   await page.click('#gymMode [data-gm="plan"]');await page.waitForTimeout(500);
+   await page.click('#gymMode [data-gm="free"]');await page.waitForTimeout(500);
+   ok((await page.$$('#exList .ex')).length===0&&await page.evaluate(()=>draft.length===0),'Individuell ohne Werte: Einheit komplett leer');
+   await page.reload();await page.waitForTimeout(100);
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
   console.log('Gym: Fortschritt pro Muskelgruppe');
   {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page);
    const add=(date,ex)=>page.evaluate(async([d,e])=>{await db.collection('sessions').add({date:d,day:'push',exercises:e})},[date,ex]);

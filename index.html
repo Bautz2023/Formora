@@ -2978,7 +2978,7 @@ function syncDraft(render=true){
 }
 function buildDraft(){
   const st=ls.get(draftKey()),nd=st&&normDraft(st.ex);
-  if(nd){draft=nd;syncDraft(false);$("gymNote").value=clean(st.note,TXT.note,true);$("draftInfo").textContent="Entwurf wiederhergestellt ("+new Date(st.ts||Date.now()).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" Uhr) – wird automatisch gesichert."}
+  if(nd){draft=CFG.gymMode==="free"?nd.filter(e=>e.vals.some(v=>(v.kg&&!v.pre)||v.r)):nd;syncDraft(false);$("gymNote").value=clean(st.note,TXT.note,true);$("draftInfo").textContent="Entwurf wiederhergestellt ("+new Date(st.ts||Date.now()).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" Uhr) – wird automatisch gesichert."}
   else{draft=templateDraft();$("gymNote").value="";$("draftInfo").textContent=""}
   renderEx();
 }
@@ -3147,7 +3147,7 @@ $("gymMode").onclick=e=>{const b=e.target.closest("[data-gm]");if(!b||b.disabled
   const m=b.dataset.gm;if(m===(CFG.gymMode==="free"?"free":"plan"))return;
   withBusy(b,async()=>{saveDraftNow();const next={...S.settingsRaw,start:S.start,gymMode:m};
     try{await db.doc("settings/main").set(tidy(next))}catch(err){toast(errMsg(err));return}
-    applySettings(next);buildDraft();renderGymMode();
+    applySettings(next);buildDraft();renderGymMode();   // Individuell: Plan-Übungen ohne Einträge fallen weg, die Einheit startet leer
     toast(m==="free"?"Individuell: du wählst die Übungen selbst":"Fester Plan: Übungen aus deinem Trainingsplan")})};
 
 /* ---------- Fortschritt pro Muskelgruppe (unabhängig vom Gerät) ---------- */
