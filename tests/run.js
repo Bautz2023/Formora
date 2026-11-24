@@ -80,6 +80,79 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    ok(dl.pick.run===pk&&!('skipRun' in dl)&&dl.addGym==='pull','Neue Auswahl ersetzt nur die alten Lauf-Felder, Gym bleibt');
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
+  console.log('Gym: Fester Plan / Individuell');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[0,2,4],run:[]}});await tab(page,'gym');
+   const sess=(page)=>page.evaluate(()=>[...window.__store.sessions.values()]);
+   ok(await page.getAttribute('#gymMode [data-gm="plan"]','aria-pressed')==='true'&&(await page.$$('#exList .ex')).length>=5,'Standard: Fester Plan, Übungen aus dem Plan');
+   const planLen=await page.evaluate(()=>TEMPLATES.push.ex.length);
+   await page.click('#gymMode [data-gm="free"]');await page.waitForTimeout(500);
+   ok(await page.evaluate(()=>CFG.gymMode==='free'&&window.__store.settings.get('main').gymMode==='free'),'Individuell gewählt und gespeichert (settings.gymMode)');
+   ok((await page.$$('#exList .ex')).length===0&&(await page.textContent('#exList')).includes('Individuelles Training'),'Individuell: Einheit startet leer');
+   ok(await page.evaluate(n=>TEMPLATES.push.ex.length===n,planLen),'Trainingsplan bleibt unverändert');
+   await page.fill('#newEx','Schräg');await page.waitForTimeout(200);
+   const hits=await page.$$eval('#exAddList [data-ax]',b=>b.map(x=>x.dataset.ax));
+   ok(hits.includes('Schrägbankdrücken Maschine'),'Suche „Schräg“ findet Übungen ('+hits.slice(0,3).join(', ')+')');
+   await page.click('#exAddList [data-ax="Schrägbankdrücken Maschine"]');await page.waitForTimeout(250);
+   ok((await page.$$('#exList .ex')).length===1&&await page.evaluate(()=>draft[0].name==='Schrägbankdrücken Maschine'&&draft[0].n===3),'Übung hinzugefügt (3 Sätze)');
+   await page.click('#exAddGroups [data-axg="ruecken"]');await page.waitForTimeout(150);
+   ok(await page.$$eval('#exAddList [data-ax]',b=>b.length>3),'Gruppen-Filter Rücken zeigt Übungen');
+   await page.click('#exAddGroups [data-axg="ruecken"]');
+   await page.evaluate(()=>{$('exNewBox').open=true});await page.fill('#gxName','Brustpresse Gym80 Schräg');await page.selectOption('#gxG','brust');await page.selectOption('#gxEq','ma');
+   await page.$eval('#gxSave',b=>b.click());await page.waitForTimeout(600);
+   ok(await page.evaluate(()=>EXI.has('Brustpresse Gym80 Schräg')&&EXI.get('Brustpresse Gym80 Schräg').g==='brust'&&draft.some(e=>e.name==='Brustpresse Gym80 Schräg')&&CFG.customEx.some(e=>e.name==='Brustpresse Gym80 Schräg')),'Eigenes Gerät angelegt (Muskelgruppe Brust) und hinzugefügt');
+   await page.fill('#kg-0-0','60');await page.fill('#r-0-0','10');await page.fill('#kg-0-1','62,5');await page.fill('#r-0-1','8');await page.fill('#kg-0-2','62,5');await page.fill('#r-0-2','7');
+   await page.click('[data-add="1"]');await page.fill('#kg-1-0','50');await page.fill('#r-1-0','12');await page.fill('#kg-1-1','50');await page.fill('#r-1-1','11');await page.fill('#kg-1-2','45');await page.fill('#r-1-2','12');await page.fill('#kg-1-3','45');await page.fill('#r-1-3','10');
+   await page.evaluate(()=>{const b=document.querySelector('#exList [data-exdel="1"]');b.click()});await page.waitForTimeout(300);
+   ok(await page.evaluate(n=>draft.length===1&&TEMPLATES.push.ex.length===n,planLen),'Übung entfernen ändert im Individuell-Modus nie den Plan');
+   await page.click('#toastUndo');await page.waitForTimeout(300);
+   await page.$eval('#saveGym',b=>b.click());await page.waitForTimeout(500);
+   const S1=await sess(page);
+   ok(S1.length===1&&S1[0].mode==='free'&&S1[0].exercises.length===2&&S1[0].exercises[0].sets.length===3&&S1[0].exercises[0].sets[1].kg===62.5&&S1[0].exercises[0].sets[1].reps===8&&S1[0].exercises[1].sets.length===4,'Einheit gespeichert: Gewicht, Sätze, Wiederholungen pro Satz ('+S1[0].exercises.map(e=>e.name+' '+e.sets.length+' Sätze').join(' · ')+')');
+   ok((await page.$$('#exList .ex')).length===0,'Nach dem Speichern startet die nächste Einheit wieder leer');
+   await page.fill('#newEx','Brustpresse Gym80');await page.waitForTimeout(150);
+   ok(await page.$eval('#exAddList [data-ax]',b=>/schon gemacht/.test(b.textContent)),'Suche markiert Geräte, die du schon gemacht hast');
+   await page.click('#exAddList [data-ax="Brustpresse Gym80 Schräg"]');await page.waitForTimeout(250);
+   ok(await page.evaluate(()=>draft[0].n===4)&&(await page.getAttribute('#kg-0-1','placeholder'))==='50'&&(await page.getAttribute('#kg-0-2','placeholder'))==='45'&&(await page.textContent('#exList')).includes('Letztes Mal'),'Letzte Werte grau und Satzzahl wie letztes Mal');
+   await page.click('#tplLoad');await page.waitForTimeout(250);
+   ok(await page.evaluate(()=>draft.length>5&&draft.some(e=>e.name==='Brustpresse Gym80 Schräg')),'Vorlage laden ergänzt die Plan-Übungen');
+   await page.evaluate(()=>{draft=draft.slice(0,2);renderEx()});
+   await page.click('#tplSave');await page.waitForTimeout(500);
+   ok(await page.evaluate(()=>{const g=window.__store.settings.get('main').gymPlan.push;return g.ex.length===2&&g.ex[0][0]==='Brustpresse Gym80 Schräg'}),'Als Vorlage speichern schreibt den Tag in den Plan');
+   await page.click('#toastUndo');await page.waitForTimeout(400);
+   ok(await page.evaluate(n=>TEMPLATES.push.ex.length===n,planLen),'… Rückgängig stellt den Plan wieder her');
+   await tab(page,'dash');await page.evaluate(async()=>{await db.doc('daily/2026-11-24').set({date:'2026-11-24',pick:{gym:'push'}})});await page.waitForTimeout(400);
+   ok((await page.textContent('#todayCard')).includes('individuell')&&!(await page.$('#todayCard [data-tree="gym"]')),'Startseite: bei Individuell keine Plan-Übungen, Hinweis auf Gym-Tab');
+   await tab(page,'gym');await page.click('#gymMode [data-gm="plan"]');await page.waitForTimeout(500);
+   ok(await page.evaluate(()=>CFG.gymMode==='plan'&&draft.length>=5),'Zurück zu Fester Plan: Plan-Übungen wieder da');
+   {const o=await overflow(page);ok(o<=0,'Gym-Tab ohne Überlauf ('+o+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
+  console.log('Gym: Fortschritt pro Muskelgruppe');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page);
+   const add=(date,ex)=>page.evaluate(async([d,e])=>{await db.collection('sessions').add({date:d,day:'push',exercises:e})},[date,ex]);
+   const mk=(kg,r,n=3)=>[...Array(n)].map(()=>({kg,reps:r}));
+   await add('2026-10-06',[{name:'Flachbankdrücken Maschine',sets:mk(60,8)},{name:'Latzug Maschine',sets:mk(50,10)}]);
+   await add('2026-10-20',[{name:'Flachbankdrücken Maschine',sets:mk(60,8)},{name:'Latzug Maschine',sets:mk(50,10)}]);
+   await add('2026-11-05',[{name:'Schrägbankdrücken Maschine',sets:mk(70,8)},{name:'Latzug Maschine',sets:mk(45,10)}]);
+   await add('2026-11-18',[{name:'Brustpresse (Plate-loaded)',sets:mk(72.5,8)},{name:'Latzug Maschine',sets:mk(45,10)}]);
+   await page.waitForTimeout(400);
+   const R=await page.evaluate(()=>{const r=groupProgress(4);return r.list.map(x=>({g:x.g,state:x.state,vc:Math.round(x.vc),vp:Math.round(x.vp),ex:Object.keys(x.ex).sort()}))});
+   const br=R.find(x=>x.g==='brust'),ru=R.find(x=>x.g==='ruecken');
+   ok(br&&br.state==='up'&&br.ex.length===3&&br.vc>br.vp,'Brust ▲ – obwohl das Gerät gewechselt wurde ('+br.ex.join(', ')+'; Volumen '+br.vp+' → '+br.vc+' kg/Wo.)');
+   ok(ru&&ru.state==='down','Rücken ▼ (weniger Gewicht bei gleichen Wiederholungen)');
+   await tab(page,'gym');await page.click('#gpCard > summary');await page.waitForTimeout(300);
+   const txt=await page.textContent('#gpBody');
+   ok(/1 von 2 Muskelgruppen besser/.test(txt)&&/1 schlechter/.test(txt),'Zusammenfassung: 1 von 2 Muskelgruppen besser, 1 schlechter');
+   ok((await page.$$('#gpBody [data-gpg]')).length===2&&/▲ besser/.test(txt)&&/▼ schlechter/.test(txt),'Zeile pro Muskelgruppe mit ▲ / ▼');
+   await page.click('#gpBody [data-gpg="brust"] > summary');await page.waitForTimeout(200);
+   const d=await page.textContent('#gpBody [data-gpg="brust"]');
+   ok(/Schrägbankdrücken Maschine/.test(d)&&/Brustpresse \(Plate-loaded\)/.test(d)&&/Flachbankdrücken Maschine/.test(d)&&/Pro Woche/.test(d),'Details: alle Geräte, Vergleich jetzt/vorher, Wochen');
+   ok(/Volumen \/ Woche/.test(d)&&/Beste Leistung/.test(d)&&/Sätze/.test(d),'Kennzahlen Volumen, Beste Leistung, Sätze');
+   await page.click('#gpBody [data-gpw="8"]');await page.waitForTimeout(250);
+   ok(await page.evaluate(()=>gp.w===8&&document.querySelector('#gpBody [data-gpg="brust"]').open),'8 Wochen wählbar, offene Gruppe bleibt offen');
+   {const o=await overflow(page);ok(o<=0,'Fortschritt ohne Überlauf ('+o+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
   console.log('Lauf-Tab: Laufen diese Woche und 5-km-Test');
   {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[0,2,4],run:[1,6]}});await tab(page,'dash');
    ok(await page.evaluate(()=>!document.getElementById('tKm').offsetParent&&!document.getElementById('tLeft').offsetParent),'Startseite: Kacheln „Laufen diese Woche“ und „5-km-Test“ weg');

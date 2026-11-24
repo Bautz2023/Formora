@@ -628,6 +628,18 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
 .wpfree.over{color:var(--bad)}
 .sheet.planmode #copyY,.sheet.planmode #copyYWrap{display:none}
 .planbar{background:var(--tint,var(--sunk));color:var(--ink);border-radius:var(--r-sm);padding:8px 12px;font-size:14px}
+/* v71 Gym: individuelles Training, Fortschritt pro Muskelgruppe */
+.ex-head{flex-wrap:wrap}.ex-head .ex-name{flex:1 1 150px}
+#gymMode .chip{flex:1;justify-content:center;text-align:center}
+.gpsum{font-size:14px}
+.gpg{display:flex;flex-direction:column;gap:8px}
+.gpv{font:700 12px var(--display);border-radius:999px;padding:3px 9px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.gpv.up{color:var(--good);background:color-mix(in srgb,var(--good) 16%,transparent)}
+.gpv.down{color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,transparent)}
+details.tree summary .gpv{margin-left:auto}
+.gpm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gpd{font-size:12.5px;color:var(--muted)}
+.gpd.up{color:var(--good)}.gpd.down{color:var(--bad)}
 </style>
 
 <div class="wrap">
@@ -911,6 +923,8 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
   <section class="view" id="v-gym" role="tabpanel" aria-labelledby="tab-gym" hidden>
     <div class="card">
       <div class="editbar" id="eb-gym" hidden><span>Einheit bearbeiten</span><button class="btn ghost" data-cancel="gym">Abbrechen</button></div>
+      <div class="chips" id="gymMode" role="group" aria-label="Trainingsart"><button class="chip" data-gm="plan" aria-pressed="true">Fester Plan</button><button class="chip" data-gm="free" aria-pressed="false">Individuell</button></div>
+      <div class="ex-last" id="gymModeInfo"></div>
       <div class="chips" id="dayChips">
         <button class="chip" data-day="push" aria-pressed="true">Push</button>
         <button class="chip" data-day="pull" aria-pressed="false">Pull</button>
@@ -951,11 +965,26 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
         </div>
       </div>
     </div>
+    <div class="card" id="exAddCard">
+      <span class="label" id="exAddLbl">Übung hinzufügen</span>
+      <div class="row"><input id="newEx" maxlength="200" list="exNames" autocomplete="off" placeholder="Suchen, z. B. Brustpresse Schräg" style="flex:1"><datalist id="exNames"></datalist><button class="btn ghost" id="addEx">Hinzufügen</button></div>
+      <div class="chips fdcats" id="exAddGroups"></div>
+      <div class="fdlist" id="exAddList"></div>
+      <details class="tree fold" id="exNewBox"><summary>Eigenes Gerät / eigene Übung anlegen</summary><div class="foldin">
+        <label class="f">Name<input id="gxName" maxlength="60" autocomplete="off" placeholder="z. B. Brustpresse Maschine Schräg"></label>
+        <div class="row"><label class="f">Muskelgruppe<select id="gxG"></select></label><label class="f">Gerät<select id="gxEq"></select></label></div>
+        <button class="btn ghost" id="gxSave">Anlegen und hinzufügen</button>
+      </div></details>
+      <div class="row" id="exTplRow"><button class="btn ghost" id="tplLoad" style="flex:1">Vorlage laden</button><button class="btn ghost" id="tplSave" style="flex:1">Als Vorlage speichern</button></div>
+    </div>
     <div class="card">
-      <div class="row"><input id="newEx" maxlength="200" list="exNames" placeholder="Weitere Übung, z. B. Latzug" style="flex:1"><datalist id="exNames"></datalist><button class="btn ghost" id="addEx">Hinzufügen</button></div>
       <label class="f">Notiz<textarea id="gymNote" rows="2" maxlength="500" placeholder="Wie lief es? Energie, Schmerzen, Schlaf …"></textarea></label>
       <button class="btn gym wide" id="saveGym">Einheit speichern</button>
     </div>
+    <details class="card" id="gpCard">
+      <summary><h2 data-ico="trend">Fortschritt</h2><span class="label" id="gpState"></span></summary>
+      <div id="gpBody"></div>
+    </details>
     <details class="card" id="peCard">
       <summary><h2 data-ico="gear">Trainingsplan anpassen</h2></summary>
       <div class="pebody" id="peBody"></div>
@@ -2933,11 +2962,13 @@ function normDraft(ex){
 }
 /** Startgewicht aus dem Plan (4. Feld) füllt die kg-Felder, solange es für die Übung noch keine Werte gibt */
 function templateDraft(){const ds=$("gymDate").value||today();
+  if(CFG.gymMode==="free"&&!(editing&&editing.kind==="sessions"))return [];
   return TEMPLATES[day].ex.map(([name,n,target,kg])=>{const vals=blankVals(n);if(kg!=null&&!lastSets(name,ds,null))vals.forEach(v=>{v.kg=fmtKg(kg);v.pre=true});return {name,target,n,vals}})}
 /** Entwurf an den Trainingsplan angleichen: Reihenfolge wie im Plan, fehlende Plan-Übungen ergänzen,
     eigene Zusatz-Übungen mit Einträgen bleiben am Ende, alte Übungen ohne Einträge fallen weg. Werte bleiben erhalten. */
 function syncDraft(render=true){
   if(!Array.isArray(draft)||(editing&&editing.kind==="sessions"))return;
+  if(CFG.gymMode==="free"){if(render&&!$("exList").contains(document.activeElement))renderEx();return}   // individuell: Plan wird nicht eingemischt
   const tpl=templateDraft(),used=new Set();
   const out=tpl.map(t=>{const d=draft.find(e=>e.name===t.name&&!used.has(e));if(d){used.add(d);return d}return t});
   draft=out.concat(draft.filter(e=>!used.has(e)&&e.vals.some(v=>(v.kg&&!v.pre)||v.r)));
@@ -2973,6 +3004,7 @@ function pickGymDay(){
 function setDay(d){day=TEMPLATES[d]?d:"push";$("dayChips").querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x.dataset.day===day));buildDraft()}
 function renderEx(){
   const ds=$("gymDate").value||today(),ex=editing&&editing.kind==="sessions"?editing.id:null;
+  if(!draft.length){setHTML($("exList"),h`<div class="ex-last">${CFG.gymMode==="free"?"Individuelles Training: Such unten deine Übungen aus, z. B. nach Muskelgruppe oder mit dem Namen deines Geräts. Gewicht, Sätze und Wiederholungen trägst du pro Satz ein – die letzten Werte siehst du grau.":"In dieser Einheit ist noch keine Übung. Füge unten eine hinzu."}</div>`);exAddRender();return}
   setHTML($("exList"),draft.map((e,i)=>{
     const last=lastSets(e.name,ds,ex),prog=progression(e.name,e.target,last);
     const H=isHold(e.name),rows=[h`<span></span><span class="h">${H?"+kg":"kg"}</span><span class="h">${H?"Sek.":"Wdh."}</span><span class="h" style="text-align:center">✓</span>`];
@@ -2987,10 +3019,11 @@ function renderEx(){
       <div class="sets">${rows}</div>
       <div class="row">${last?h`<button class="btn ghost" data-same="${i}">✓ wie letztes Mal</button>`:""}<button class="btn ghost" data-add="${i}">+ Satz</button>${e.n>1?h`<button class="btn ghost" data-rem="${i}">− Satz</button>`:""}</div></div>`}));
   draft.forEach((_,i)=>updateCmp(i));
+  exAddRender();
 }
 /* v65: Übung aus der Einheit entfernen – heute und (falls im Plan) dauerhaft aus dem Trainingsplan, mit Rückgängig */
 function exRemove(i){
-  const d=draft[i];if(!d)return;const t=TEMPLATES[day],sess=editing&&editing.kind==="sessions",inPlan=!sess&&t.ex.some(r=>r[0]===d.name);
+  const d=draft[i];if(!d)return;const t=TEMPLATES[day],sess=editing&&editing.kind==="sessions",inPlan=!sess&&CFG.gymMode!=="free"&&t.ex.some(r=>r[0]===d.name);
   if(inPlan&&t.ex.length<=1){toast("Eine Einheit braucht mindestens eine Übung – tausche sie stattdessen");return}
   const prevGp=S.settingsRaw.gymPlan,undoDraft=()=>{if(!draft.includes(d)){draft.splice(Math.min(i,draft.length),0,d);renderEx();saveDraftSoon()}};
   draft.splice(i,1);renderEx();saveDraftSoon();
@@ -3057,7 +3090,115 @@ $("exList").addEventListener("click",e=>{
 $("dayChips").onclick=e=>{const c=e.target.closest("[data-day]");if(!c)return;dayChosen=true;if(!(editing&&editing.kind==="sessions"))saveDraftNow();setDay(c.dataset.day)};
 $("gymDate").addEventListener("focus",()=>{$("gymDate").dataset.old=$("gymDate").value});
 $("gymDate").addEventListener("change",()=>{const de=checkDate($("gymDate").value);if(de){toast(de);$("gymDate").value=today();touched.gymDate=false}rekeyDraft($("gymDate").dataset.old);$("gymDate").dataset.old=$("gymDate").value;renderEx()});
-$("addEx").onclick=()=>{const n=clean($("newEx").value,TXT.name);if(!n)return;draft.push({name:n,target:EXI.has(n)?defTarget(EXI.get(n)):"",n:3,vals:blankVals(3)});$("newEx").value="";renderEx();saveDraftSoon()};
+/** Übung zur Einheit von heute hinzufügen: Satzzahl wie letztes Mal (sonst 3), Werte vom letzten Mal grau */
+function addToDraft(name){
+  const n=clean(name,TXT.name);if(!n)return false;
+  if(draft.some(e=>e.name===n)){toast("„"+n+"“ ist schon in der Einheit");return false}
+  if(draft.length>=20){toast("Höchstens 20 Übungen pro Einheit");return false}
+  const last=lastSets(n,$("gymDate").value||today(),editing&&editing.kind==="sessions"?editing.id:null),cnt=last?Math.max(1,Math.min(12,last.length)):3;
+  draft.push({name:n,target:EXI.has(n)?defTarget(EXI.get(n)):"",n:cnt,vals:blankVals(cnt)});renderEx();saveDraftSoon();return true}
+$("addEx").onclick=()=>{if(addToDraft($("newEx").value)){$("newEx").value="";ax.q="";exAddRender()}};
+const ax={q:"",g:""};
+function exAddRender(){
+  if(!$("exAddList"))return;
+  const eqOn=CFG.gymEquip||Object.keys(EX_EQUIP),have=new Set(draft.map(x=>x.name)),q=normQ(ax.q).trim(),words=q?q.split(/\s+/):[];
+  const recent=new Map();[...S.sessions].sort(byDate).forEach(s=>(s.exercises||[]).forEach(e=>recent.set(e.name,s.date)));
+  const L=exAll().filter(x=>!have.has(x.name)&&(!ax.g||x.g===ax.g)&&(ax.q?true:eqOn.includes(x.eq)||recent.has(x.name))&&words.every(w=>normQ(x.name).includes(w)))
+    .sort((a,b)=>(recent.has(b.name)-recent.has(a.name))||((recent.get(b.name)||"")>(recent.get(a.name)||"")?1:-1)||a.name.localeCompare(b.name,"de")).slice(0,15);
+  setHTML($("exAddGroups"),Object.entries(EX_GROUPS).filter(([k])=>k!=="ganz").map(([k,l])=>h`<button class="chip sm ink" data-axg="${k}" aria-pressed="${ax.g===k}">${l}</button>`));
+  setHTML($("exAddList"),L.length?L.map(x=>h`<button class="fd" data-ax="${x.name}"><span class="n">${x.name}</span><span class="k">${EX_EQUIP[x.eq]||""}${recent.has(x.name)?" · schon gemacht":""}</span></button>`)
+    :h`<div class="ex-last">${ax.q?"Keine Übung gefunden – leg sie unten als eigenes Gerät an oder tippe „Hinzufügen“.":"Alle passenden Übungen sind schon in der Einheit."}</div>`);
+  const free=CFG.gymMode==="free";$("tplLoad").hidden=!free;$("tplSave").hidden=!free;$("exTplRow").hidden=!free;
+  setHTML($("gxG"),Object.entries(EX_GROUPS).map(([k,l])=>h`<option value="${k}">${l}</option>`));
+  setHTML($("gxEq"),Object.entries(EX_EQUIP).map(([k,l])=>h`<option value="${k}">${l}</option>`));
+}
+$("newEx").addEventListener("input",()=>{ax.q=$("newEx").value;exAddRender()});
+$("exAddCard").addEventListener("click",e=>{
+  const g=e.target.closest("[data-axg]");if(g){ax.g=ax.g===g.dataset.axg?"":g.dataset.axg;exAddRender();return}
+  const b=e.target.closest("[data-ax]");if(b){if(addToDraft(b.dataset.ax)){ax.q="";$("newEx").value="";exAddRender();const last=$("exList").lastElementChild;if(last)last.scrollIntoView({behavior:"smooth",block:"nearest"})}}});
+$("gxSave").onclick=()=>withBusy($("gxSave"),async()=>{
+  const name=clean($("gxName").value,60);if(!name){toast("Name eintragen");return}if(!needDb())return;
+  if(EXI.has(name)){toast("Diese Übung gibt es schon – such sie oben");return}if((CFG.customEx||[]).length>=100){toast("Maximal 100 eigene Übungen");return}
+  const g=$("gxG").value,eq=$("gxEq").value,ex={name,g,eq,c:false,l:["beine","po","waden"].includes(g),b:eq==="kg",v:false,s:false};
+  await saveSettings({customEx:(CFG.customEx||[]).map(({own,...e})=>e).concat([ex])});
+  if(addToDraft(name)){$("gxName").value="";$("exNewBox").open=false;toast(name+" angelegt und hinzugefügt")}});
+/** Vorlage (Trainingsplan des Tages) in den individuellen Entwurf laden / Entwurf als Vorlage speichern */
+$("tplLoad").onclick=()=>{const t=TEMPLATES[day],have=new Set(draft.map(e=>e.name)),ds=$("gymDate").value||today();
+  if(!t||!t.ex.length){toast("Für „"+(t?t.name:day)+"“ gibt es keine Vorlage");return}
+  const add=t.ex.filter(r=>!have.has(r[0])).map(([name,n,target,kg])=>{const vals=blankVals(n);if(kg!=null&&!lastSets(name,ds,null))vals.forEach(v=>{v.kg=fmtKg(kg);v.pre=true});return {name,target,n,vals}});
+  draft=draft.concat(add).slice(0,20);renderEx();saveDraftSoon();toast(add.length?add.length+" Übungen aus „"+t.name+"“ geladen":"Alles aus der Vorlage ist schon da")};
+$("tplSave").onclick=()=>withBusy($("tplSave"),async()=>{
+  if(!needDb())return;const ex=draft.filter(e=>e.name);if(!ex.length){toast("Erst Übungen hinzufügen");return}
+  const prev=tidy(S.settingsRaw),gp=tidy(S.settingsRaw.gymPlan||{});
+  GYM_ALL.forEach(k=>{const t=gp[k];if(!t||!Array.isArray(t.ex)||!t.ex.length)gp[k]={name:TEMPLATES[k].name,ex:TEMPLATES[k].ex.map(r=>r.slice())}});
+  gp[day]={name:TEMPLATES[day].name,ex:ex.map(e=>[e.name,e.n,e.target||defTarget(EXI.get(e.name))])};
+  const next={...S.settingsRaw,start:S.start,gymPlan:gp};await db.doc("settings/main").set(tidy(next));applySettings(next);invalidate();scheduleRender();
+  toast("Als Vorlage für „"+TEMPLATES[day].name+"“ gespeichert",async()=>{await db.doc("settings/main").set(prev);applySettings(prev);invalidate();scheduleRender()},8000)});
+
+/* ---------- Fester Plan / Individuell ---------- */
+function renderGymMode(){
+  const free=CFG.gymMode==="free";
+  $("gymMode").querySelectorAll("[data-gm]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.gm===(free?"free":"plan"))));
+  $("gymModeInfo").textContent=free?"Individuell: Du stellst jede Einheit selbst zusammen. Dein Trainingsplan bleibt unverändert und lässt sich jederzeit als Vorlage laden."
+    :"Fester Plan: Übungen und Sätze kommen aus deinem Trainingsplan. Du trägst nur Gewicht und Wiederholungen ein.";
+  $("gymMode").querySelectorAll("button").forEach(b=>b.disabled=!db||!!(editing&&editing.kind==="sessions"));
+}
+$("gymMode").onclick=e=>{const b=e.target.closest("[data-gm]");if(!b||b.disabled||!needDb())return;
+  const m=b.dataset.gm;if(m===(CFG.gymMode==="free"?"free":"plan"))return;
+  withBusy(b,async()=>{saveDraftNow();const next={...S.settingsRaw,start:S.start,gymMode:m};
+    try{await db.doc("settings/main").set(tidy(next))}catch(err){toast(errMsg(err));return}
+    applySettings(next);buildDraft();renderGymMode();
+    toast(m==="free"?"Individuell: du wählst die Übungen selbst":"Fester Plan: Übungen aus deinem Trainingsplan")})};
+
+/* ---------- Fortschritt pro Muskelgruppe (unabhängig vom Gerät) ---------- */
+const gp={w:+(ls.get("gpW")||4),open:new Set()};
+/** Eine Satzleistung: geschätztes Maximalgewicht (e1RM); Halteübungen zählen nicht, Körpergewichtsübungen mit Körpergewicht */
+function setLoad(e,date,x){if(isHold(e.name))return 0;const kg=N(x.kg);return isBwVol(e.name)?bwOn(date)+kg:kg}
+function groupProgress(W,t=today()){
+  const cs=addDays(monday(t),-7*(W-1)),ps=addDays(cs,-7*W),G={};
+  const slot=(g)=>G[g]||(G[g]={g,cur:{sets:0,vol:0,best:null,n:0},prev:{sets:0,vol:0,best:null,n:0},weeks:{},ex:{}});
+  for(const s of S.sessions){if(!isDate(s.date)||s.date<ps||s.date>t)continue;const per=s.date>=cs?"cur":"prev",wk=monday(s.date);
+    const seen=new Set();
+    for(const e of s.exercises||[]){const g=groupOfEx(e.name);if(g==="ganz"||!(e.sets||[]).length)continue;const o=slot(g),P=o[per];
+      for(const x of e.sets){const r=N(x.reps),L=setLoad(e,s.date,x);if(!(r>0)||!(L>0))continue;
+        const sc=e1rm(L,r),vol=L*r;P.sets++;P.vol+=vol;if(!P.best||sc>P.best.sc)P.best={sc,name:e.name,kg:N(x.kg),reps:r,date:s.date};
+        const X=o.ex[e.name]||(o.ex[e.name]={name:e.name,cur:null,prev:null});if(!X[per]||sc>X[per].sc)X[per]={sc,kg:N(x.kg),reps:r,date:s.date};
+        if(per==="cur"){const Wk=o.weeks[wk]||(o.weeks[wk]={wk,sets:0,vol:0,best:null});Wk.sets++;Wk.vol+=vol;if(!Wk.best||sc>Wk.best.sc)Wk.best={sc,name:e.name,kg:N(x.kg),reps:r}}}
+      if(!seen.has(g)){seen.add(g);o[per].n++}}}
+  const dir=(a,b,th)=>!(b>0)?null:a/b-1>th?1:a/b-1<-th?-1:0;
+  const list=Object.values(G).map(o=>{const vc=o.cur.vol/W,vp=o.prev.vol/W,sD=o.cur.best&&o.prev.best?dir(o.cur.best.sc,o.prev.best.sc,.005):null,vD=o.cur.sets&&o.prev.sets?dir(vc,vp,.05):null;
+    let state="new";if(!o.cur.sets)state="none";else if(sD!=null||vD!=null){const sc=(sD||0)*2+(vD||0);state=sc>0?"up":sc<0?"down":"eq"}
+    return {...o,vc,vp,sD,vD,state,vPct:vp>0?(vc/vp-1)*100:null,sPct:o.cur.best&&o.prev.best?(o.cur.best.sc/o.prev.best.sc-1)*100:null,sKg:o.cur.best&&o.prev.best?o.cur.best.sc-o.prev.best.sc:null}});
+  list.sort((a,b)=>b.cur.vol-a.cur.vol||b.prev.vol-a.prev.vol);
+  return {W,cs,ps,list};
+}
+const GP_LBL={up:"▲ besser",down:"▼ schlechter",eq:"= gleich",new:"neu",none:"nicht trainiert"};
+function renderProgress(){
+  const el=$("gpBody");if(!el||!$("gpCard").open)return;
+  const R=groupProgress(gp.w),L=R.list.filter(x=>x.cur.sets||x.prev.sets),up=L.filter(x=>x.state==="up").length,down=L.filter(x=>x.state==="down").length;
+  $("gpState").textContent=L.length?up+" ▲ · "+down+" ▼":"";
+  const pct=v=>v==null?"":(v>0?"+":"")+fmtNum(v,Math.abs(v)<10?1:0)+" %";
+  const dc=v=>v==null?"":v>0?" up":v<0?" down":"";
+  const row=x=>{const wk=Object.values(x.weeks).sort((a,b)=>a.wk<b.wk?-1:1),pts=wk.filter(w=>w.best).map(w=>({x:w.wk,y:w.best.sc})),
+      exs=Object.values(x.ex).sort((a,b)=>((b.cur&&b.cur.sc)||0)-((a.cur&&a.cur.sc)||0));
+    return h`<details class="tree fold" data-gpg="${x.g}"${raw(gp.open.has(x.g)?" open":"")}><summary>${EX_GROUPS[x.g]||x.g}<span class="gpv ${x.state}">${GP_LBL[x.state]}</span></summary><div class="foldin gpg">
+      <div class="gpm"><div class="mini"><span>Volumen / Woche</span><b>${f0(x.vc)} kg</b><span class="gpd${dc(x.vPct)}">${x.vPct!=null?pct(x.vPct)+" zu vorher":"kein Vergleich"}</span></div>
+        <div class="mini"><span>Beste Leistung</span><b>${x.cur.best?f0(x.cur.best.sc)+" kg":"–"}</b><span class="gpd${dc(x.sKg)}">${x.sKg!=null?(x.sKg>0?"+":"")+fmtNum(x.sKg,1)+" kg":"kein Vergleich"}</span></div>
+        <div class="mini"><span>Sätze</span><b>${x.cur.sets}</b><span class="gpd">${x.prev.sets?"vorher "+x.prev.sets:"vorher –"}</span></div></div>
+      ${x.cur.best?h`<div class="ex-last">Bester Satz: <b>${x.cur.best.name}</b> ${fmtKg(x.cur.best.kg)} × ${x.cur.best.reps} (${fmtDM(x.cur.best.date)}), entspricht ca. ${f0(x.cur.best.sc)} kg für 1 Wdh. Der Vergleich zählt jedes Gerät gleich.</div>`:h`<div class="ex-last">In diesem Zeitraum nicht trainiert.</div>`}
+      ${exs.length?h`<span class="label">Übungen</span>${exs.map(e=>h`<div class="stl"><b>${e.name}</b><span>${e.cur?"jetzt "+fmtKg(e.cur.kg)+" × "+e.cur.reps+" (ca. "+f0(e.cur.sc)+" kg)":"jetzt –"} · ${e.prev?"vorher "+fmtKg(e.prev.kg)+" × "+e.prev.reps+" (ca. "+f0(e.prev.sc)+" kg)":"vorher –"}${e.cur&&e.prev?h` <b class="gpd${dc(e.cur.sc-e.prev.sc)}">${e.cur.sc>e.prev.sc*1.005?"▲":e.cur.sc<e.prev.sc*.995?"▼":"="}</b>`:""}</span></div>`)}`:""}
+      ${wk.length?h`<span class="label">Pro Woche</span>${wk.map(w=>h`<div class="stl"><b>${fmtDM(w.wk)} · ${w.sets} Sätze · ${f0(w.vol)} kg</b><span>${w.best?"Beste: "+w.best.name+" "+fmtKg(w.best.kg)+" × "+w.best.reps+" (ca. "+f0(w.best.sc)+" kg)":""}</span></div>`)}`:""}
+      ${pts.length>1?h`<div class="chart">${lineChart(pts,{color:"var(--accent)",fmt:v=>fmtNum(v,0),label:(EX_GROUPS[x.g]||x.g)+": beste Leistung pro Woche, zuletzt "+f0(pts[pts.length-1].y)+" kg"})}</div>`:""}
+    </div></details>`};
+  setHTML(el,h`<div class="chips" id="gpW" role="group" aria-label="Zeitraum">${[4,8,12].map(w=>h`<button class="chip sm ink" data-gpw="${w}" aria-pressed="${gp.w===w}">${w} Wochen</button>`)}</div>
+    ${L.length?h`<div class="gpsum">${up?h`<b class="gpd up">${up} von ${L.length} Muskelgruppen besser</b>`:h`<b>${L.length} Muskelgruppen trainiert</b>`}${down?h` · <b class="gpd down">${down} schlechter</b>`:""}</div>
+      <div class="ex-last">Verglichen werden die letzten ${R.W} Wochen mit den ${R.W} Wochen davor. Beste Leistung = geschätztes Maximalgewicht (e1RM) über alle Übungen der Gruppe, egal an welchem Gerät. Volumen = Gewicht × Wiederholungen.</div>
+      ${L.map(row)}`
+      :h`<div class="ex-last">Noch keine Einheiten mit Gewicht in diesem Zeitraum. Sobald du trainierst, siehst du hier pro Muskelgruppe, ob du besser wirst – auch wenn du Geräte und Reihenfolge wechselst.</div>`}`);
+}
+$("gpCard").addEventListener("toggle",()=>{if($("gpCard").open)renderProgress()});
+$("gpBody").addEventListener("click",e=>{const b=e.target.closest("[data-gpw]");if(!b)return;gp.w=+b.dataset.gpw;ls.set("gpW",gp.w);renderProgress()});
+$("gpBody").addEventListener("toggle",e=>{const d=e.target;if(d.dataset&&d.dataset.gpg){d.open?gp.open.add(d.dataset.gpg):gp.open.delete(d.dataset.gpg)}},true);
 /** Sätze einsammeln: leeres kg/Wdh.-Feld übernimmt den Wert vom letzten Mal */
 function collectGym(ds,excludeId){
   const exercises=[];
@@ -3079,7 +3220,7 @@ $("saveGym").onclick=()=>withBusy($("saveGym"),async()=>{
   const isEdit=editing&&editing.kind==="sessions",res=collectGym(ds,isEdit?editing.id:null);
   if(res.err){toast(res.err);const el=$(res.el);if(el){el.setAttribute("aria-invalid","true");el.focus()}return}
   if(!res.exercises.length){toast("Trag mindestens einen Satz ein");return}
-  const body={date:ds,day,dayName:TEMPLATES[day].name,exercises:res.exercises,note:clean($("gymNote").value,TXT.note,true)};
+  const body={date:ds,day,dayName:TEMPLATES[day].name,...(CFG.gymMode==="free"?{mode:"free"}:{}),exercises:res.exercises,note:clean($("gymNote").value,TXT.note,true)};
   if(isEdit){await db.doc("sessions/"+editing.id).set(tidy({...stripId(editing.orig),...body,editedAt:Date.now()}));toast("Einheit aktualisiert");endEdit();return}
   const key=draftKey(),snap={ex:JSON.parse(JSON.stringify(draft)),note:$("gymNote").value,day};
   const ref=await db.collection("sessions").add(tidy({...body,createdAt:Date.now()}));
@@ -3374,7 +3515,9 @@ function renderToday(){
   if(d.run){const R=runSession(t);go="run";goTxt="Lauf eintragen";
     parts.push(h`<details class="tree" data-tree="run"${raw(todayOpen.has("run")?" open":"")}><summary>Lauf · ${R.title} <span>Warm-up · Hauptteil · Cool-down</span></summary>
       <dl class="steps">${R.steps.map(([a,b])=>h`<dt>${a}</dt><dd>${b}</dd>`)}</dl></details>`)}
-  if(d.gym){const tp=TEMPLATES[d.gym];if(!d.run||!S.runs.some(r=>r.date===t)){go="gym";goTxt="Gym eintragen"}
+  if(d.gym&&CFG.gymMode==="free"){const tp=TEMPLATES[d.gym];if(!d.run||!S.runs.some(r=>r.date===t)){go="gym";goTxt="Gym eintragen"}
+    parts.push(h`<div class="ex-last"><b>${tp.name}</b> · individuell: die Übungen wählst du im Gym-Tab.</div>`)}
+  else if(d.gym){const tp=TEMPLATES[d.gym];if(!d.run||!S.runs.some(r=>r.date===t)){go="gym";goTxt="Gym eintragen"}
     parts.push(h`<details class="tree" data-tree="gym"${raw(todayOpen.has("gym")?" open":"")}><summary>${tp.name} · Übungen <span>${tp.ex.length} Übungen</span></summary>
       <ul class="tlist">${tp.ex.map(([n,c,tg])=>{const last=lastSets(n,t,null),pr=progression(n,tg,last);
         return h`<li><span>${n} <span class="ex-target" style="font-size:14px">${c} × ${tg}</span></span><span class="ex-last">${last?"zuletzt "+last.map(s=>fmtKg(s.kg)+"×"+N(s.reps)).join(", "):"noch keine Werte"}${pr?h` · <b class="ex-prog${pr.up?" up":""}">${pr.text}</b>`:""}</span></li>`})}</ul></details>`)}
@@ -3849,6 +3992,7 @@ function applySettings(d){
   const ka=S.settingsRaw.kcalAdj;
   c.kcalAdj=Array.isArray(ka)?ka.filter(e=>e&&isDate(e.from)&&isFinite(N(e.adj))).map(e=>({from:e.from,adj:Math.max(-AD.max,Math.min(AD.max,Math.round(N(e.adj)/50)*50)),...(N(e.tdee)>0?{tdee:Math.round(N(e.tdee))}:{}),...(isFinite(N(e.rate))&&e.rate!=null?{rate:Math.round(N(e.rate)*100)/100}:{}),...(N(e.n)>0?{n:Math.round(N(e.n))}:{})})).sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:0).slice(-30):[];
   const rc=S.settingsRaw.race;c.race=rc&&typeof rc==="object"&&isDate(rc.date)?{date:rc.date,goal:inR(N(rc.goal),[4800,12600])?Math.round(N(rc.goal)):PACES_BASE_HM}:null;
+  c.gymMode=S.settingsRaw.gymMode==="free"?"free":"plan";
   const ge=S.settingsRaw.gymEquip;c.gymEquip=Array.isArray(ge)?ge.filter(k=>EX_EQUIP[k]):null;
   TEMPLATES=JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));const gp=S.settingsRaw.gymPlan;
   const OLD_NAMES={"Push + Beine":"Push","Pull + Beine":"Pull"},nm=x=>{const v=clean(x,40);return OLD_NAMES[v]||v};
@@ -3948,7 +4092,7 @@ function render(){
   invalidate();applyPaces();const t=today(),thisMon=monday(t),I=planInfo(t),P=I.P,wk=I.wk;
   setHTML($("weekBadge"),I.mode==="hm"?h`HM-Woche <b>${wk}</b> / 12`:h`Aufbau <b>${wk}</b> / 4`);
   document.querySelectorAll(".paceHint").forEach(x=>x.textContent=paceHintTxt());
-  renderToday();renderCoachCheck();renderPaCard();renderWarmup();renderRecovery();renderSteps();renderSettings();renderCheck();renderAdapt();renderTrain();renderWkTake();renderOrbs();renderCoach();if(!$("wkSet").contains(document.activeElement)||document.activeElement.tagName!=="INPUT")renderWkSet();
+  renderToday();renderCoachCheck();renderPaCard();renderWarmup();renderRecovery();renderSteps();renderSettings();renderCheck();renderAdapt();renderTrain();renderWkTake();renderOrbs();renderGymMode();renderProgress();renderCoach();if(!$("wkSet").contains(document.activeElement)||document.activeElement.tagName!=="INPUT")renderWkSet();
   // Kacheln
   const wkRuns=S.runs.filter(r=>monday(r.date)===thisMon),km=sum(wkRuns.map(r=>N(r.km))),PW=weekPlan(thisMon);
   setHTML($("tKm"),h`${fmtNum(km,1)}<small>km</small>`);
@@ -4497,13 +4641,14 @@ function swOpen(i){
   const cur=EXI.get(e.name)||null,g=cur?cur.g:null,eqOn=CFG.gymEquip||Object.keys(EX_EQUIP),have=new Set(draft.map(x=>x.name));
   const L=exAll().filter(x=>x.name!==e.name&&!have.has(x.name)&&(!g||x.g===g)&&eqOn.includes(x.eq))
     .sort((a,b)=>(cur&&cur.a?0:(a.a?1:0)-(b.a?1:0))||(cur?(!!b.s===!!cur.s)-(!!a.s===!!cur.s):0)||(cur?(b.c===cur.c)-(a.c===cur.c):0)||((b.eq===(cur&&cur.eq))-(a.eq===(cur&&cur.eq)))).slice(0,40);
+  {const lb=$("swPerm").closest("label");if(lb)lb.hidden=CFG.gymMode==="free"}
   $("swTitle").textContent=e.name+" tauschen";$("swSub").textContent=g?EX_GROUPS[g]+" · gleiche Muskelgruppe":"Alle Übungen";
   setHTML($("swList"),L.length?L.map(x=>h`<button class="fd" data-sw="${x.name}"><span class="n">${x.name}</span><span class="k">${EX_EQUIP[x.eq]}${x.c?" · Grundübung":""}${x.s?" · Halten":""}${x.a?" · Skill":""}</span></button>`):h`<div class="ex-last">Keine passende Alternative mit deinen Geräten gefunden.</div>`);
   $("swSheet").hidden=false;document.body.classList.add("sheet-open");
 }
 function swClose(){if($("swSheet").hidden)return;$("swSheet").hidden=true;document.body.classList.remove("sheet-open");if(sw.focus&&sw.focus.isConnected)sw.focus.focus({preventScroll:true})}
 $("swSheet").addEventListener("click",e=>{if(e.target.closest("[data-swclose]")){swClose();return}
-  const b=e.target.closest("[data-sw]");if(!b)return;const d=draft[sw.i];if(!d)return;const old=d.name,nw=b.dataset.sw,x=EXI.get(nw),perm=$("swPerm").checked;
+  const b=e.target.closest("[data-sw]");if(!b)return;const d=draft[sw.i];if(!d)return;const old=d.name,nw=b.dataset.sw,x=EXI.get(nw),perm=$("swPerm").checked&&CFG.gymMode!=="free";
   const tgt=d.target||defTarget(x);draft[sw.i]={name:nw,target:tgt,n:d.n,vals:blankVals(d.n)};
   swClose();renderEx();saveDraftSoon();
   if(perm&&db&&!(editing&&editing.kind==="sessions")){const t=TEMPLATES[day],gp={...(S.settingsRaw.gymPlan||{})};
