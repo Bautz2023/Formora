@@ -259,6 +259,130 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    {const o=await overflow(page);ok(o<=0,'Einstellungen ohne Überlauf ('+o+'px)')}
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
+  console.log('Vorschlag und RIR');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{gymMode:'free'});await tab(page,'gym');
+   const mk=(kg,r,rir,n=3)=>[...Array(n)].map(()=>({kg,reps:r,...(rir!=null?{rir}:{})}));
+   const addS=(date,ex)=>page.evaluate(async([d,e])=>{await db.collection('sessions').add({date:d,day:'push',exercises:e})},[date,ex]);
+   await addS('2026-11-17',[{name:'Schrägbankdrücken Maschine',sets:mk(60,8)},{name:'Kurzhantel-Bankdrücken',sets:mk(30,8,3)},{name:'Butterfly',sets:mk(40,10,0)},{name:'Seitheben',sets:[{kg:10,reps:12,rir:1},{kg:10,reps:11,rir:2},{kg:10,reps:10,rir:0}]}]);
+   await page.waitForTimeout(300);
+   const ph=async(i,k)=>({kg:await page.getAttribute('#kg-'+i+'-'+k,'placeholder'),r:await page.getAttribute('#r-'+i+'-'+k,'placeholder')});
+   for(const n of ['Schrägbankdrücken Maschine','Kurzhantel-Bankdrücken','Butterfly','Seitheben'])await page.evaluate(n=>addToDraft(n),n);
+   await page.waitForTimeout(300);
+   const p0=await ph(0,0);ok(p0.kg==='60'&&p0.r==='9','Ohne RIR: gleiches Gewicht, +1 Wdh. als Vorschlag ('+p0.kg+' × '+p0.r+')');
+   const p1=await ph(1,0);ok(p1.kg==='32,5'&&/^\d+$/.test(p1.r),'Letztes Mal leicht (RIR 3+): +2,5 kg als Vorschlag ('+p1.kg+' × '+p1.r+')');
+   ok((await page.textContent('#exList')).includes('war es leicht (RIR 3+)'),'Begründung steht im Vorschlag');
+   const p2=await ph(2,0);ok(p2.kg==='40'&&p2.r==='10','Letztes Mal am Limit (RIR 0): gleiches Gewicht und gleiche Wdh. ('+p2.kg+' × '+p2.r+')');
+   ok((await page.textContent('#exList')).includes('am Limit (RIR 0)'),'Begründung „am Limit“');
+   ok((await page.textContent('#exList')).includes('Letztes Mal: 10 × 12 (RIR 1)'),'„Letztes Mal“ zeigt den RIR je Satz');
+   // Vorschlag übernehmen
+   await page.click('[data-sug="1"]');await page.waitForTimeout(250);
+   ok(await page.inputValue('#kg-1-0')==='32,5'&&await page.inputValue('#r-1-0')===p1.r&&await page.inputValue('#kg-1-2')==='32,5','„Vorschlag übernehmen“ füllt alle Sätze (32,5 kg)');
+   // RIR umschalten
+   const b=()=>page.textContent('[data-rir="0-0"]');
+   const seq=[await b()];for(let i=0;i<5;i++){await page.click('[data-rir="0-0"]');seq.push(await b())}
+   ok(seq.join('|')==='–|0|1|2|3+|–','RIR-Knopf: – → 0 → 1 → 2 → 3+ → –');
+   await page.click('[data-rir="0-0"]');await page.click('[data-rir="0-0"]');   // 0, 1
+   await page.fill('#kg-0-0','60');await page.fill('#r-0-0','9');
+   await page.click('[data-done="0-1"]');await page.waitForTimeout(250);   // ✓ ohne Eingabe → Vorschlag
+   ok(await page.inputValue('#kg-0-1')==='60'&&await page.inputValue('#r-0-1')==='9','✓ ohne Eingabe übernimmt den Vorschlag (60 × 9)');
+   await page.fill('#kg-0-2','60');await page.fill('#r-0-2','8');
+   await page.evaluate(()=>{draft=draft.slice(0,2);renderEx()});await page.waitForTimeout(150);
+   await page.fill('#kg-0-0','60');await page.fill('#r-0-0','9');await page.fill('#kg-0-1','60');await page.fill('#r-0-1','8');await page.fill('#kg-0-2','60');await page.fill('#r-0-2','8');
+   await page.fill('#kg-1-0','32,5');await page.fill('#r-1-0','6');await page.fill('#kg-1-1','32,5');await page.fill('#r-1-1','6');await page.fill('#kg-1-2','32,5');await page.fill('#r-1-2','6');
+   await page.$eval('#saveGym',x=>x.click());await page.waitForTimeout(500);
+   const sv=await page.evaluate(()=>[...window.__store.sessions.values()].find(s=>s.date==='2026-11-24'));
+   ok(sv&&sv.exercises[0].sets[0].rir===1&&sv.exercises[0].sets[0].kg===60&&sv.exercises[0].sets[1].rir===undefined&&sv.exercises[0].sets[1].reps===8,'RIR wird je Satz gespeichert (nur wo gesetzt): Satz 1 RIR 1');
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
+  console.log('Workout-Uhr');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{gymMode:'free'});await tab(page,'gym');
+   ok(await page.isVisible('#wcCard')&&(await page.textContent('#wcBtn')).includes('starten')&&(await page.textContent('#wcTime'))==='0:00','Gym: Workout-Uhr mit „Workout starten“');
+   await page.click('#wcBtn');await page.waitForTimeout(200);
+   ok((await page.textContent('#wcBtn')).includes('beenden')&&/läuft seit \d\d:\d\d Uhr/.test(await page.textContent('#wcInfo')),'Start: Uhr läuft ('+await page.textContent('#wcInfo')+')');
+   await page.clock.fastForward(1200000);await page.clock.runFor(1500);await page.waitForTimeout(200);
+   const t1=await page.textContent('#wcTime');ok(/^20:0\d$/.test(t1),'Uhr zählt hoch (nach 20 Min.: '+t1+')');
+   ok(await page.evaluate(()=>!!ls.get('gymClock')),'Start wird im Gerät gemerkt (überlebt Neuladen)');
+   await tab(page,'dash');ok((await page.textContent('#todayCard')).includes('Workout läuft seit'),'Startseite zeigt „Workout läuft“');
+   await tab(page,'gym');await page.click('#wcBtn');await page.waitForTimeout(200);
+   ok((await page.textContent('#wcInfo')).includes('beendet · 20 Min.')&&(await page.textContent('#wcBtn')).includes('Neu starten'),'Beenden: 20 Min. festgehalten');
+   await page.evaluate(()=>addToDraft('Schrägbankdrücken Maschine'));await page.waitForTimeout(200);
+   await page.fill('#kg-0-0','60');await page.fill('#r-0-0','8');
+   await page.$eval('#saveGym',x=>x.click());await page.waitForTimeout(500);
+   const se=await page.evaluate(()=>[...window.__store.sessions.values()][0]);
+   ok(se&&se.durationSec>=1195&&se.durationSec<=1215,'Dauer wird an der Einheit gespeichert ('+(se&&se.durationSec)+' s)');
+   ok((await page.textContent('#toastT')).includes('20 Min.')&&(await page.textContent('#wcTime'))==='0:00'&&await page.evaluate(()=>ls.get('gymClock')==null),'Nach dem Speichern: Uhr zurückgesetzt');
+   // zu kurz: wird nicht gespeichert
+   await page.click('#wcBtn');await page.clock.fastForward(60000);await page.evaluate(()=>addToDraft('Butterfly'));await page.fill('#kg-0-0','40');await page.fill('#r-0-0','10');
+   await page.$eval('#saveGym',x=>x.click());await page.waitForTimeout(500);
+   const s2=await page.evaluate(()=>[...window.__store.sessions.values()].filter(s=>s.exercises[0].name==='Butterfly')[0]);
+   ok(s2&&s2.durationSec===undefined,'Unter 5 Minuten: Dauer wird nicht gespeichert');
+   {const o=await overflow(page);ok(o<=0,'Workout-Uhr ohne Überlauf ('+o+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
+  console.log('Umfänge');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page);await tab(page,'body');
+   await page.evaluate(()=>setBodySub('meas'));await page.waitForTimeout(200);
+   ok(await page.isVisible('#measForm')&&(await page.$$('#mFields input')).length===9,'Gewicht-Tab: Bereich „Umfänge“ mit 9 Messstellen');
+   ok((await page.textContent('#measSum')).includes('Noch keine Umfänge'),'Leer: Hinweis');
+   await page.fill('#mDate','2026-11-17');await page.dispatchEvent('#mDate','change');
+   await page.fill('#m-taille','88');await page.fill('#m-armL','37,5');await page.click('#mSave');await page.waitForTimeout(400);
+   await page.fill('#mDate','2026-11-24');await page.dispatchEvent('#mDate','change');await page.waitForTimeout(150);
+   ok(await page.inputValue('#m-taille')==='','Anderes Datum: Felder leer');
+   await page.fill('#m-taille','86,5');await page.fill('#m-armL','38');await page.fill('#m-brust','104');await page.click('#mSave');await page.waitForTimeout(400);
+   const d1=await page.evaluate(()=>window.__store.measures.get('2026-11-24'));
+   ok(d1&&d1.taille===86.5&&d1.armL===38&&d1.brust===104&&d1.nacken===undefined,'Gespeichert (measures/Datum), leere Felder fehlen');
+   const sum=await page.textContent('#measSum');
+   ok(/Taille/.test(sum)&&/86,5 cm/.test(sum)&&/−1,5 zuletzt/.test(sum)&&/Oberarm links/.test(sum)&&/\+0,5 zuletzt/.test(sum)&&/erste Messung/.test(sum),'Stand und Veränderung: Taille 86,5 cm (−1,5), Oberarm +0,5, Brust erste Messung');
+   ok((await page.$$('#measChart [data-msel]')).length===3&&await page.$('#measChart svg'),'Diagramm mit Auswahl der Messstellen');
+   ok((await page.$$('#measHist [data-mdel]')).length===2,'Einträge-Liste (2)');
+   await page.fill('#m-wade','500');await page.click('#mSave');await page.waitForTimeout(200);
+   ok((await page.textContent('#toastT')).includes('5 bis 300'),'Unsinniger Wert (500 cm) wird abgelehnt');
+   await page.fill('#m-wade','');
+   await page.fill('#mDate','2026-11-17');await page.dispatchEvent('#mDate','change');await page.waitForTimeout(150);
+   ok(await page.inputValue('#m-taille')==='88'&&await page.inputValue('#m-armL')==='37,5','Vorhandenes Datum füllt die Felder zum Ändern');
+   await page.fill('#m-taille','87,8');await page.click('#mSave');await page.waitForTimeout(400);
+   ok(await page.evaluate(()=>window.__store.measures.get('2026-11-17').taille===87.8&&window.__store.measures.get('2026-11-17').armL===37.5),'Änderung speichert, andere Werte bleiben');
+   await page.click('[data-mdel="2026-11-17"]');await page.waitForTimeout(300);
+   ok(await page.evaluate(()=>!window.__store.measures.has('2026-11-17')),'Eintrag löschen');
+   await page.click('#toastUndo');await page.waitForTimeout(300);
+   ok(await page.evaluate(()=>window.__store.measures.has('2026-11-17')),'… Rückgängig');
+   ok(await page.evaluate(()=>{const a=sanitizeImport('measures',{id:'2026-11-20',date:'2026-11-20',taille:90,foo:5,nacken:9999});return a&&a.id==='2026-11-20'&&a.o.taille===90&&a.o.foo===undefined&&a.o.nacken===undefined&&sanitizeImport('measures',{date:'2026-11-20',foo:1})===null}),'Import: nur gültige Messwerte, ohne Werte verworfen');
+   ok(await page.evaluate(()=>COLS.includes('measures')&&impKey('measures',{date:'2026-11-20'})==='2026-11-20'),'Umfänge sind in Export und Import enthalten');
+   {const o=await overflow(page);ok(o<=0,'Umfänge ohne Überlauf ('+o+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
+  console.log('Gegenprüfung kcal-Tagesziel');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[],run:[]}});
+   const T=(d=D0)=>page.evaluate(d=>{invalidate();const t=targetFor(d);return {...t}},d);
+   const rest=await T();
+   ok(Math.abs(rest.bmr-(10*83+6.25*184-5*31+5))<1,'Grundumsatz = Mifflin-St-Jeor: '+Math.round(rest.bmr)+' kcal (184 cm, 31 J., 83 kg)');
+   ok(Math.abs(rest.alltag-rest.bmr*1.5)<1&&Math.abs(rest.tdee-(rest.alltag+rest.gymK+rest.runK+rest.otherK+rest.stepK))<1,'Verbrauch = Grundumsatz × Alltag + Training + Schritte (nichts doppelt)');
+   ok(rest.total===Math.max(Math.ceil(rest.bmr/50)*50,Math.round((rest.tdee-450)/50)*50),'Tagesziel = Verbrauch − Defizit, auf 50 gerundet: '+rest.total+' kcal');
+   // Lauf 8 km in 54 Min. (Garmin-kcal fehlen → Rechnung nach MET)
+   await page.evaluate(async d=>{await db.collection('runs').add({date:d,type:'Easy',km:8,sec:3240})},D0);await page.waitForTimeout(300);
+   const run=await T();const perKm=run.runK/83/8;
+   ok(perKm>=.75&&perKm<=1.05,'Lauf netto '+Math.round(run.runK)+' kcal = '+perKm.toFixed(2)+' kcal pro kg und km (üblich: 0,75–1,05)');
+   // Garmin-kcal vorhanden: brutto minus Ruheumsatz der Laufzeit
+   await page.evaluate(async d=>{const r=[...window.__store.runs.keys()][0];await db.doc('runs/'+r).set({date:d,type:'Easy',km:8,sec:3240,kcal:700})},D0);await page.waitForTimeout(300);
+   const g=await T();ok(Math.abs(g.runK-(700-3240/60*1.3))<1,'Garmin-Kalorien: 700 brutto − Ruheumsatz (1,3 kcal/Min.) = '+Math.round(g.runK)+' netto');
+   await page.evaluate(async d=>{const r=[...window.__store.runs.keys()][0];await db.doc('runs/'+r).set({date:d,type:'Easy',km:8,sec:3240})},D0);await page.waitForTimeout(300);
+   // Schritte enthalten die Laufschritte: kein doppeltes Zählen
+   await page.evaluate(async d=>{await db.doc('daily/'+d).set({date:d,steps:16000})},D0);await page.waitForTimeout(300);
+   const sr=await T();
+   ok(sr.stepRun===9200&&sr.stepK===0,'16.000 Schritte inkl. 8 km Lauf: 9.200 Laufschritte abgezogen, Rest 6.800 < 7.500 → kein Zuschlag (stepK '+sr.stepK+')');
+   await page.evaluate(async d=>{await db.doc('daily/'+d).set({date:d,steps:22000})},D0);await page.waitForTimeout(300);
+   const s3=await T();ok(s3.stepK===Math.round((22000-9200-s3.stepBase)*83*0.0005)&&s3.stepK>0,'22.000 Schritte inkl. Lauf: nur die übrigen 12.800 zählen, +'+s3.stepK+' kcal');
+   await page.evaluate(async()=>{for(const r of [...window.__store.runs.keys()])await db.doc('runs/'+r).delete()});await page.waitForTimeout(300);
+   const s4=await T();ok(s4.stepRun===0&&s4.stepK>s3.stepK,'Ohne Lauf zählen alle 22.000 Schritte (+'+s4.stepK+' kcal)');
+   // Gym: pauschal 250 kcal
+   await page.evaluate(async d=>{await db.collection('sessions').add({date:d,day:'push',exercises:[{name:'Butterfly',sets:[{kg:40,reps:10}]}]})},D0);await page.waitForTimeout(300);
+   const gy=await T();ok(gy.gymK===250,'Gym-Einheit: 250 kcal pauschal');
+   // Ruhetag vs. Trainingstag: Unterschied = Lauf + Gym
+   await page.evaluate(async d=>{await db.collection('runs').add({date:d,type:'Easy',km:8,sec:3240})},D0);await page.waitForTimeout(300);
+   const tr=await T();const rest2=await T('2026-11-20');
+   ok(Math.abs((tr.tdee-rest2.tdee)-(tr.runK+tr.gymK+(tr.stepK-rest2.stepK)))<1,'Trainingstag − Ruhetag = Lauf + Gym (+ Schrittunterschied): '+Math.round(tr.tdee-rest2.tdee)+' kcal');
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
   console.log('Lauf-Tab: Laufen diese Woche und 5-km-Test');
   {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[0,2,4],run:[1,6]}});await tab(page,'dash');
    ok(await page.evaluate(()=>!document.getElementById('tKm').offsetParent&&!document.getElementById('tLeft').offsetParent),'Startseite: Kacheln „Laufen diese Woche“ und „5-km-Test“ weg');
