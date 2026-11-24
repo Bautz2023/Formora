@@ -600,7 +600,7 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
 .orbp.open{grid-template-rows:1fr;opacity:1;margin-top:0}
 .orbin{overflow:hidden;min-height:0;position:relative}
 .orbx{position:absolute;top:10px;right:10px;z-index:2;width:34px;height:34px;border-radius:50%;border:0;background:var(--sunk);color:var(--ink);font-size:15px;cursor:pointer}
-.orbcard>summary{display:none}
+.orbcard>summary{pointer-events:none;cursor:default;padding-right:40px}.orbcard>summary::after{display:none}.orbcard>summary .label{margin-left:auto}
 .orbcard{padding-top:16px}
 .orbcard>.row.sb:first-child,.orbcard>h2:first-child{padding-right:40px}
 @media (prefers-reduced-motion:reduce){.orbp,.orb,.segb{transition:none}}
@@ -640,6 +640,15 @@ details.tree summary .gpv{margin-left:auto}
 .gpm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .gpd{font-size:12.5px;color:var(--muted)}
 .gpd.up{color:var(--good)}.gpd.down{color:var(--bad)}
+/* v72 Kreise auf Lauf, Gewicht, Gym */
+.orbs.o3{grid-template-columns:repeat(6,minmax(0,1fr))}
+.orbs.o3>.orb{grid-column:span 2}
+.orbs.o3.c2>.orb:first-of-type{grid-column:2/4}
+.orbs.o3.c1>.orb:first-of-type{grid-column:3/5}
+.orb{position:relative}
+.odot{position:absolute;top:13%;right:17%;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+#rtCard>.row.sb:first-child{padding-right:40px}
+#bodyKg{display:flex;flex-direction:column;gap:14px}
 </style>
 
 <div class="wrap">
@@ -936,7 +945,26 @@ details.tree summary .gpv{margin-left:auto}
       <label class="f">Datum<input type="date" id="gymDate"></label>
       <div class="ex-last" id="draftInfo"></div>
     </div>
-    <details class="card" id="wuCard"><summary><h2 data-ico="flame">Warm-up</h2><span class="label" id="wuState"></span></summary><div id="wuBody"></div></details>
+    <div class="orbs o3" role="group">
+      <button class="orb" data-orb="wu" aria-expanded="false" aria-controls="orbP-wu"><span class="oi" data-ico-raw="flame"></span><span class="ol">Warm-up</span><span class="ov" id="orbV-wu">–</span></button>
+      <button class="orb" data-orb="gp" aria-expanded="false" aria-controls="orbP-gp"><span class="oi" data-ico-raw="trend"></span><span class="ol">Fortschritt</span><span class="ov" id="orbV-gp">–</span></button>
+      <button class="orb" data-orb="pe" aria-expanded="false" aria-controls="orbP-pe"><span class="oi" data-ico-raw="gear"></span><span class="ol">Plan anpassen</span><span class="ov" id="orbV-pe">–</span></button>
+    </div>
+    <div class="orbp" id="orbP-wu" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="wu" aria-label="Schließen">✕</button>
+    <details class="card orbcard" id="wuCard" open><summary><h2 data-ico="flame">Warm-up</h2><span class="label" id="wuState"></span></summary><div id="wuBody"></div></details>
+    </div></div>
+    <div class="orbp" id="orbP-gp" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="gp" aria-label="Schließen">✕</button>
+    <details class="card orbcard" id="gpCard" open>
+      <summary><h2 data-ico="trend">Fortschritt</h2><span class="label" id="gpState"></span></summary>
+      <div id="gpBody"></div>
+    </details>
+    </div></div>
+    <div class="orbp" id="orbP-pe" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="pe" aria-label="Schließen">✕</button>
+    <details class="card orbcard" id="peCard" open>
+      <summary><h2 data-ico="gear">Trainingsplan anpassen</h2></summary>
+      <div class="pebody" id="peBody"></div>
+    </details>
+    </div></div>
     <div class="card" id="exList"></div>
     <!-- v58 Übung tauschen -->
     <div class="sheet" id="swSheet" hidden>
@@ -981,14 +1009,6 @@ details.tree summary .gpv{margin-left:auto}
       <label class="f">Notiz<textarea id="gymNote" rows="2" maxlength="500" placeholder="Wie lief es? Energie, Schmerzen, Schlaf …"></textarea></label>
       <button class="btn gym wide" id="saveGym">Einheit speichern</button>
     </div>
-    <details class="card" id="gpCard">
-      <summary><h2 data-ico="trend">Fortschritt</h2><span class="label" id="gpState"></span></summary>
-      <div id="gpBody"></div>
-    </details>
-    <details class="card" id="peCard">
-      <summary><h2 data-ico="gear">Trainingsplan anpassen</h2></summary>
-      <div class="pebody" id="peBody"></div>
-    </details>
     <div class="card chart">
       <div class="row sb"><h2 data-ico="dumbbell">Kraft (e1RM)</h2><select id="e1Ex" class="inline" aria-label="Übung für e1RM-Verlauf"></select></div>
       <details class="tree fold"><summary>Diagramm anzeigen</summary><div class="foldin"><div class="ex-last">Geschätztes Maximalgewicht für 1 Wiederholung (Epley: kg × (1 + Wdh./30)), bester Satz je Einheit.</div><div id="cE1"></div></div></details>
@@ -1090,16 +1110,33 @@ details.tree summary .gpv{margin-left:auto}
       <div class="tile" hidden style="display:none"><span class="label">Gewicht Ø 7 Tage</span><span class="num" id="tW">–<small>kg</small></span><span class="sub" id="tWSub">Ziel ca. 80 kg</span></div>
       <div class="tile"><span class="label" id="tLeftL">Nächster 5-km-Test</span><span class="num" id="tLeft">–<small>Wo.</small></span><span class="sub" id="tLeftS"></span></div>
     </div>
-    <div class="card" id="hmCard">
+    <div class="orbs o3" role="group">
+      <button class="orb" data-orb="hm" aria-expanded="false" aria-controls="orbP-hm"><span class="oi" data-ico-raw="flag"></span><span class="ol">Halbmarathon</span><span class="ov" id="orbV-hm">–</span></button>
+      <button class="orb" data-orb="tst" aria-expanded="false" aria-controls="orbP-tst"><span class="oi" data-ico-raw="heart"></span><span class="ol">Zonen &amp; Prognose</span><span class="ov" id="orbV-tst">–</span><i class="odot" id="orbD-tst" hidden></i></button>
+      <button class="orb" data-orb="eff" aria-expanded="false" aria-controls="orbP-eff"><span class="oi" data-ico-raw="trend"></span><span class="ol">Schneller bei gleichem Puls</span><span class="ov" id="orbV-eff">–</span></button>
+    </div>
+    <div class="orbp" id="orbP-hm" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="hm" aria-label="Schließen">✕</button>
+    <div class="card orbcard" id="hmCard">
       <div class="row sb"><h2 data-ico="flag">Halbmarathon</h2><span class="label" id="hmState"></span></div>
       <div id="hmBody" class="rcbody"></div>
     </div>
-    <div class="card" id="testCard"></div>
-    <div class="card chart" id="effCard">
+    </div></div>
+    <div class="orbp" id="orbP-tst" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="tst" aria-label="Schließen">✕</button>
+    <div class="card orbcard" id="testCard"></div>
+    </div></div>
+    <div class="orbp" id="orbP-eff" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="eff" aria-label="Schließen">✕</button>
+    <div class="card chart orbcard" id="effCard">
       <div class="row sb"><h2 data-ico="trend">Schneller bei gleichem Puls</h2><span class="label" id="effState"></span></div>
       <div id="effBody" class="rcbody"></div>
     </div>
-    <details class="card" id="rcCard">
+    </div></div>
+    <div class="orbs o3" role="group">
+      <button class="orb" data-orb="rc" aria-expanded="false" aria-controls="orbP-rc"><span class="oi" data-ico-raw="flag"></span><span class="ol">Wett&shy;kampf&shy;rechner</span><span class="ov" id="orbV-rc">–</span></button>
+      <button class="orb" data-orb="runs" aria-expanded="false" aria-controls="orbP-runs"><span class="oi" data-ico-raw="list"></span><span class="ol">Letzte Läufe</span><span class="ov" id="orbV-runs">–</span></button>
+      <button class="orb" data-orb="rt" aria-expanded="false" aria-controls="orbP-rt"><span class="oi" data-ico-raw="map"></span><span class="ol">Strecke planen</span><span class="ov" id="orbV-rt">–</span></button>
+    </div>
+    <div class="orbp" id="orbP-rc" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="rc" aria-label="Schließen">✕</button>
+    <details class="card orbcard" id="rcCard" open>
       <summary><h2 data-ico="flag">Wettkampfrechner</h2></summary>
       <div class="rcbody">
         <span class="label">Worauf die Prognose aufbaut</span>
@@ -1125,13 +1162,18 @@ details.tree summary .gpv{margin-left:auto}
         </ul></div></details>
       </div>
     </details>
-    <div class="card"><h2 data-ico="run">Letzte Läufe</h2><div class="ex-last">Eintrag antippen = bearbeiten</div><div class="hist"><ul id="runHist"></ul></div></div>
+    </div></div>
+    <div class="orbp" id="orbP-runs" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="runs" aria-label="Schließen">✕</button>
+    <div class="card orbcard" id="runsCard"><h2 data-ico="run">Letzte Läufe</h2><div class="ex-last">Eintrag antippen = bearbeiten</div><div class="hist"><ul id="runHist"></ul></div></div>
+    </div></div>
+    <div class="orbp" id="orbP-rt" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="rt" aria-label="Schließen">✕</button>
     <div class="card" id="rtCard">
       <div class="row sb"><h2 data-ico="map">Strecke planen</h2><span class="label" id="rtToday"></span></div>
       <div class="ex-last">Rundkurse und Hin-und-zurück-Strecken rund um Sulzfeld. Nur Asphalt und Feldwege, mit Höhenmetern und GPX für Garmin.</div>
       <div class="row"><button class="btn run" id="rtOpen" style="flex:1">Strecke finden</button><button class="btn ghost" id="rtOwn">Selbst erstellen</button></div>
       <div id="rtSaved" class="fdbox"></div>
     </div>
+    </div></div>
   </section>
 
   <!-- KÖRPER -->
@@ -1148,12 +1190,30 @@ details.tree summary .gpv{margin-left:auto}
       </div>
       <button class="btn wide" id="saveBody">Gewicht speichern</button>
     </div>
-    <div class="card"><h2 data-ico="trend">Prognose</h2><div id="wTrend2"></div></div>
-    <div class="card" id="adCard"></div>
-    <span class="label sect">Coach-Analysen</span>
-    <details class="card" id="coWeek"><summary><h2 data-ico="checkin">Wochenbericht</h2></summary><div class="cobody" id="coWeekBody"></div></details>
-    <div class="card" id="weekAvgCard"><h2 data-ico="chart">Wochendurchschnitt</h2><div class="hist"><ul id="weekAvgList"></ul></div></div>
-    <div class="card"><h2 data-ico="list">Einträge</h2><div class="ex-last">Eintrag antippen = bearbeiten</div><div class="hist"><ul id="bodyHist"></ul></div></div>
+    <div class="orbs o3" role="group">
+      <button class="orb" data-orb="prog" aria-expanded="false" aria-controls="orbP-prog"><span class="oi" data-ico-raw="trend"></span><span class="ol">Prognose</span><span class="ov" id="orbV-prog">–</span></button>
+      <button class="orb" data-orb="ad" aria-expanded="false" aria-controls="orbP-ad"><span class="oi" data-ico-raw="flame"></span><span class="ol">kcal-Ziel prüfen</span><span class="ov" id="orbV-ad">–</span><i class="odot" id="orbD-ad" hidden></i></button>
+      <button class="orb" data-orb="cow" aria-expanded="false" aria-controls="orbP-cow"><span class="oi" data-ico-raw="checkin"></span><span class="ol">Wochen&shy;bericht</span><span class="ov" id="orbV-cow">–</span></button>
+    </div>
+    <div class="orbp" id="orbP-prog" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="prog" aria-label="Schließen">✕</button>
+    <div class="card orbcard" id="progCard"><h2 data-ico="trend">Prognose</h2><div id="wTrend2"></div></div>
+    </div></div>
+    <div class="orbp" id="orbP-ad" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="ad" aria-label="Schließen">✕</button>
+    <div class="card orbcard" id="adCard"></div>
+    </div></div>
+    <div class="orbp" id="orbP-cow" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="cow" aria-label="Schließen">✕</button>
+    <details class="card orbcard" id="coWeek" open><summary><h2 data-ico="checkin">Wochenbericht</h2></summary><div class="cobody" id="coWeekBody"></div></details>
+    </div></div>
+    <div class="orbs o3" role="group">
+      <button class="orb" data-orb="avg" aria-expanded="false" aria-controls="orbP-avg"><span class="oi" data-ico-raw="chart"></span><span class="ol">Wochen&shy;durchschnitt</span><span class="ov" id="orbV-avg">–</span></button>
+      <button class="orb" data-orb="ent" aria-expanded="false" aria-controls="orbP-ent"><span class="oi" data-ico-raw="list"></span><span class="ol">Einträge</span><span class="ov" id="orbV-ent">–</span></button>
+    </div>
+    <div class="orbp" id="orbP-avg" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="avg" aria-label="Schließen">✕</button>
+    <div class="card orbcard" id="weekAvgCard"><h2 data-ico="chart">Wochendurchschnitt</h2><div class="hist"><ul id="weekAvgList"></ul></div></div>
+    </div></div>
+    <div class="orbp" id="orbP-ent" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="ent" aria-label="Schließen">✕</button>
+    <div class="card orbcard" id="entCard"><h2 data-ico="list">Einträge</h2><div class="ex-last">Eintrag antippen = bearbeiten</div><div class="hist"><ul id="bodyHist"></ul></div></div>
+    </div></div>
     </div>
     <div id="bodyFoto" hidden>
     <div class="card" id="ckCard">
@@ -3614,7 +3674,32 @@ function renderOrbs(){
   const B=dayBudget(today());set("wp",B.total?(B.free>=0?"Heute frei: "+f0(B.free)+" kcal":f0(-B.free)+" kcal drüber"):"Tage planen");
   const sc=schedOf(planInfo(today()).mode);set("wk",(sc.gym.length||sc.run.length)?sc.gym.length+"× Gym · "+sc.run.length+"× Lauf":"Tage festlegen");
   const ae=document.activeElement;if(orbOpen==="wp"&&!($("wpBody").contains(ae)&&ae.tagName==="INPUT"))renderWeekPlan();
+  orbTabs();
 }
+
+const orbSet=(k,v,dot)=>{const el=$("orbV-"+k);if(el)el.textContent=v;const d=$("orbD-"+k);if(d)d.hidden=!dot};
+/** Kennzahlen der Kreise auf Lauf, Gewicht und Gym; ausgeblendete Karten blenden ihren Kreis aus */
+function orbTabs(){
+  const t=today(),I=planInfo(t),r=raceOf(),LT=latestTest(),runs=[...S.runs].filter(x=>isDate(x.date)).sort(byDate),lr=runs[runs.length-1],pd=planDay(t);
+  orbSet("hm",r&&r.date>=t?"Wettkampf "+fmtDM(r.date):weekLabel(I));
+  orbSet("tst",LT?"5 km: "+fmtTime(LT.t):"5-km-Test fehlt",!LT);
+  orbSet("eff",$("effState").textContent||"noch keine Daten");
+  orbSet("rc","Zielzeit rechnen");
+  orbSet("runs",lr?fmtKm(lr.km)+" km · "+fmtDM(lr.date):"noch kein Lauf");
+  orbSet("rt",pd.run?"heute ca. "+fmtKm(pd.run.km)+" km":"Strecke finden");
+  const bw=cache().bw,tr=bw.length?weightTrend(bw,t,CFG.goalKg):null,ac=adaptCheck(t);
+  orbSet("prog",tr&&tr.ok?(tr.perWeek>0?"+":"")+fmtNum(tr.perWeek,2)+" kg pro Woche":"braucht 5 Messungen");
+  orbSet("ad",ac.state==="wait"?"noch "+ac.left+" Tage":ac.state==="data"?"zu wenig Daten":ac.state==="propose"?"Vorschlag da":"passt",ac.state==="propose");
+  orbSet("cow","Woche ab "+fmtDM(monday(t)));
+  orbSet("avg",kgNow()>0?"Ø "+fmtNum(kgNow(),1)+" kg":"noch kein Gewicht");
+  orbSet("ent",S.body.length+(S.body.length===1?" Wiegung":" Wiegungen"));
+  orbSet("wu",($("wuState").textContent||"ca. 15 Min.").trim());
+  orbSet("gp",($("gpState").textContent||"").trim()||gp.w+" Wochen");
+  orbSet("pe",GYM_ALL.length+" Einheiten");
+  const rtOff=$("rtCard").style.display==="none";const ro=document.querySelector('[data-orb="rt"]');if(ro)ro.hidden=rtOff;
+  document.querySelectorAll(".orbs.o3").forEach(g=>{const n=[...g.querySelectorAll(".orb")].filter(o=>!o.hidden).length;g.classList.toggle("c2",n===2);g.classList.toggle("c1",n===1)});
+}
+document.addEventListener("toggle",e=>{const d=e.target;if(d&&d.matches&&d.matches("details.orbcard")&&!d.open)d.open=true},true);
 
 /* =====================================================================
    v70 Tagesplanung im Voraus: daily.planMeals = [{name,kcal,p,c,f,meal}], settings.dayTemplates = [{name,pick,planMeals}]

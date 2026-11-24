@@ -154,7 +154,7 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    const br=R.find(x=>x.g==='brust'),ru=R.find(x=>x.g==='ruecken');
    ok(br&&br.state==='up'&&br.ex.length===3&&br.vc>br.vp,'Brust ▲ – obwohl das Gerät gewechselt wurde ('+br.ex.join(', ')+'; Volumen '+br.vp+' → '+br.vc+' kg/Wo.)');
    ok(ru&&ru.state==='down','Rücken ▼ (weniger Gewicht bei gleichen Wiederholungen)');
-   await tab(page,'gym');await page.click('#gpCard > summary');await page.waitForTimeout(300);
+   await tab(page,'gym');await page.click('[data-orb="gp"]');await page.waitForTimeout(300);
    const txt=await page.textContent('#gpBody');
    ok(/1 von 2 Muskelgruppen besser/.test(txt)&&/1 schlechter/.test(txt),'Zusammenfassung: 1 von 2 Muskelgruppen besser, 1 schlechter');
    ok((await page.$$('#gpBody [data-gpg]')).length===2&&/▲ besser/.test(txt)&&/▼ schlechter/.test(txt),'Zeile pro Muskelgruppe mit ▲ / ▼');
@@ -165,6 +165,55 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    await page.click('#gpBody [data-gpw="8"]');await page.waitForTimeout(250);
    ok(await page.evaluate(()=>gp.w===8&&document.querySelector('#gpBody [data-gpg="brust"]').open),'8 Wochen wählbar, offene Gruppe bleibt offen');
    {const o=await overflow(page);ok(o<=0,'Fortschritt ohne Überlauf ('+o+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
+  console.log('Kreise auf Lauf, Gewicht und Gym');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[0,2,4],run:[1,6]}});
+   await page.evaluate(async()=>{await db.collection('runs').add({date:'2026-11-20',type:'Easy',km:6.2,sec:2280})});await page.waitForTimeout(400);
+   const vis=(sel)=>page.$$eval(sel,b=>b.filter(x=>x.offsetParent).length);
+   const closed=()=>page.evaluate(()=>[...document.querySelectorAll('.orbp')].every(p=>!p.classList.contains('open')));
+   // Lauf
+   await tab(page,'run');
+   ok(await vis('#v-run [data-orb]')===6,'Lauf: sechs Kreise');
+   ok(await page.evaluate(()=>['hmCard','testCard','effCard','rcCard','runsCard','rtCard'].every(id=>{const e=document.getElementById(id);return e&&e.closest('.orbp')})),'Lauf: alle sechs Karten stecken in Kreisen');
+   const lv=await page.evaluate(()=>['hm','tst','eff','rc','runs','rt'].map(k=>document.getElementById('orbV-'+k).textContent));
+   ok(/Aufbau/.test(lv[0])&&lv[1]==='5-km-Test fehlt'&&lv[4]==='6,2 km · 20.11.'&&/heute ca\. \d+ km/.test(lv[5]),'Lauf: Kennzahlen '+lv.join(' | '));
+   ok(await page.evaluate(()=>!document.getElementById('orbD-tst').hidden),'Lauf: Punkt bei „5-km-Test fehlt“');
+   ok(await page.evaluate(()=>{const R=[...document.querySelectorAll('#v-run .orbs')].map(g=>[...g.querySelectorAll('.orb')].map(o=>Math.round(o.getBoundingClientRect().width)));return R.length===2&&R.every(r=>r.length===3&&Math.max(...r)-Math.min(...r)<=1)}),'Lauf: zwei Reihen mit je drei gleich großen Kreisen');
+   const hLauf=await page.evaluate(()=>document.documentElement.scrollHeight);ok(hLauf<1500,'Lauf-Seite kompakt ('+hLauf+' px statt über 2100)');
+   ok(await page.evaluate(()=>document.getElementById('saveRun').getBoundingClientRect().bottom<document.querySelector('#v-run [data-orb]').getBoundingClientRect().top),'Lauf: erst Lauf eintragen, darunter die Kreise');
+   for(const [k,txt] of [['hm','Halbmarathon'],['tst','Zonen'],['eff','Schneller bei gleichem Puls'],['rc','Wettkampfrechner'],['runs','Letzte Läufe'],['rt','Strecke planen']]){
+     await page.click(`[data-orb="${k}"]`);await page.waitForTimeout(450);
+     const st=await page.evaluate(k=>{const p=document.getElementById('orbP-'+k);return {open:p.classList.contains('open'),h:p.getBoundingClientRect().height,t:p.innerText,n:document.querySelectorAll('.orbp.open').length}},k);
+     ok(st.open&&st.h>50&&st.n===1&&st.t.includes(txt),'Lauf: Kreis '+k+' klappt auf („'+txt+'“, '+Math.round(st.h)+' px)');
+     {const o=await overflow(page);ok(o<=0,'… ohne Überlauf ('+o+'px)')}}
+   await page.click('[data-orbx="rt"]');await page.waitForTimeout(450);ok(await closed(),'Lauf: ✕ klappt zu');
+   await page.click('[data-orb="rt"]');await page.waitForTimeout(450);await page.$eval('#rtOpen',b=>b.click());await page.waitForTimeout(300);
+   ok(await page.isVisible('#rtSheet'),'Lauf: „Strecke finden“ im Kreis öffnet die Streckenplanung');await page.evaluate(()=>{document.querySelector('#rtSheet [data-rclose]').click()});
+   // Gewicht
+   await tab(page,'body');
+   ok(await vis('#v-body [data-orb]')===5,'Gewicht: fünf Kreise');
+   const gv=await page.evaluate(()=>['prog','ad','cow','avg','ent'].map(k=>document.getElementById('orbV-'+k).textContent));
+   ok(/5 Messungen/.test(gv[0])&&gv[4]==='1 Wiegung'&&/Ø 83,0 kg/.test(gv[3])&&/Woche ab/.test(gv[2]),'Gewicht: Kennzahlen '+gv.join(' | '));
+   ok(await page.evaluate(()=>{const g=[...document.querySelectorAll('#v-body .orbs')];const r=g[1].querySelectorAll('.orb');return g.length===2&&g[1].classList.contains('c2')&&r.length===2&&r[0].getBoundingClientRect().left>40}),'Gewicht: zweite Reihe mit zwei Kreisen mittig');
+   for(const [k,txt] of [['prog','Prognose'],['ad','kcal-Ziel'],['cow','Wochenbericht'],['avg','Wochendurchschnitt'],['ent','Einträge']]){
+     await page.click(`[data-orb="${k}"]`);await page.waitForTimeout(450);
+     ok(await page.evaluate(([k,t])=>{const p=document.getElementById('orbP-'+k);return p.classList.contains('open')&&p.getBoundingClientRect().height>40&&p.innerText.includes(t)},[k,txt]),'Gewicht: Kreis '+k+' klappt auf („'+txt+'“)')}
+   ok(await page.evaluate(()=>document.getElementById('saveBody').getBoundingClientRect().bottom<document.querySelector('#v-body [data-orb]').getBoundingClientRect().top),'Gewicht: Eintragen bleibt oben');
+   await page.fill('#bDate','2026-11-23');await page.fill('#bKg','82,4');await page.click('#saveBody');await page.waitForTimeout(400);
+   ok(await page.evaluate(()=>/2 Wiegungen/.test(document.getElementById('orbV-ent').textContent)),'Gewicht: Kreis „Einträge“ zählt mit (2 Wiegungen)');
+   {const o=await overflow(page);ok(o<=0,'Gewicht ohne Überlauf ('+o+'px)')}
+   // Gym
+   await tab(page,'gym');
+   ok(await vis('#v-gym [data-orb]')===3,'Gym: drei Kreise');
+   const yv=await page.evaluate(()=>['wu','gp','pe'].map(k=>document.getElementById('orbV-'+k).textContent));
+   ok(/Min/.test(yv[0])&&/6 Einheiten/.test(yv[2]),'Gym: Kennzahlen '+yv.join(' | '));
+   ok(await page.evaluate(()=>{const r=document.querySelector('#v-gym .orbs').getBoundingClientRect().top,e=document.querySelector('#exList').getBoundingClientRect().top;return r<e}),'Gym: Kreise stehen über den Übungen');
+   for(const [k,txt] of [['wu','Warm-up'],['gp','Fortschritt'],['pe','Trainingsplan anpassen']]){
+     await page.click(`[data-orb="${k}"]`);await page.waitForTimeout(500);
+     ok(await page.evaluate(([k,t])=>{const p=document.getElementById('orbP-'+k);return p.classList.contains('open')&&p.getBoundingClientRect().height>40&&p.innerText.includes(t)},[k,txt]),'Gym: Kreis '+k+' klappt auf („'+txt+'“)')}
+   ok(await page.evaluate(()=>/Fester Plan|Individuell/.test(document.getElementById('gymMode').innerText)&&!!document.getElementById('peBody').children.length),'Gym: Plan-Editor ist im Kreis befüllt');
+   {const o=await overflow(page);ok(o<=0,'Gym ohne Überlauf ('+o+'px)')}
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
   console.log('Lauf-Tab: Laufen diese Woche und 5-km-Test');
