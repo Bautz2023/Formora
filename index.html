@@ -1735,8 +1735,10 @@ const macrosOf=(total,protein)=>{const f=Math.max(70,Math.round(total*.22/9));re
 /* v65: Schritte über dem, was der Alltags-Faktor schon enthält, zählen zum Verbrauch (nur eingetragene Tage, nur nach oben) */
 const STEP_KCAL_PER_KG=0.0005;
 function stepBase(){return Math.round(Math.max(3000,Math.min(15000,5000+(N(CFG.activity)-1.3)*12500))/500)*500}
-function stepBonus(ds,kg){const d=dailyOn(ds),base=stepBase();if(!d||d.steps==null)return {k:0,steps:0,base};const st=N(d.steps);
-  return {k:Math.round(Math.min(800,Math.max(0,st-base)*kg*STEP_KCAL_PER_KG)),steps:st,base}}
+/** Ohne Eingabe rechnet die App mit 10.000 Schritten am Tag; die echte Zahl trägst du am Abend ein und ersetzt die Annahme */
+const STEP_ASSUMED=10000;
+function stepBonus(ds,kg){const d=dailyOn(ds),base=stepBase(),has=!!d&&d.steps!=null,st=has?N(d.steps):STEP_ASSUMED;
+  return {k:Math.round(Math.min(800,Math.max(0,st-base)*kg*STEP_KCAL_PER_KG)),steps:st,base,assumed:!has}}
 function targetFor(ds){
   const c=cache();if(c.tg[ds])return c.tg[ds];
   const kg=kgNow(),d=planDay(ds),future=ds>=c.t,useWeek=CFG.weekSrc==="week"&&!!CFG.week;
@@ -1756,10 +1758,10 @@ function targetFor(ds){
   if(km)src.push("Lauf "+fmtKm(km)+" km"+(runsLog.length?" (eingetragen)":pkR?" (gewählt)":d.added.run?" (hinzugefügt)":W?" (meine Woche)":" (Plan)"));
   if(otherK)src.push(W.label+" (meine Woche)");
   if(d.skip&&d.skip.gym&&!gymLog)src.push("Gym ausgesetzt");if(d.skip&&d.skip.run&&!runsLog.length)src.push("Lauf ausgesetzt");
-  const stp=stepBonus(ds,kg);if(stp.k)src.push(f0(stp.steps)+" Schritte");
+  const stp=stepBonus(ds,kg);if(stp.k)src.push(f0(stp.steps)+" Schritte"+(stp.assumed?" (angenommen)":""));
   const stepK=stp.k,bmr=bmrOf(kg,CFG),alltag=bmr*CFG.activity,delta=goalDelta(CFG),adj=adjOn(ds),tdee=alltag+gymK+runK+otherK+stepK;
   const total=Math.max(Math.ceil(bmr/50)*50,Math.round((tdee+delta+adj)/50)*50),m=macrosOf(total,CFG.protein);
-  return c.tg[ds]={kg,bmr,alltag,gymK,runK,otherK,stepK,stepBase:stp.base,km,tdee,adj,def:delta<0?-delta:0,sur:delta>0?delta:0,total,p:m.p,f:m.f,c:m.c,src:src.length&&!(src.every(x=>/ausgesetzt$/.test(x)))?src.join(" + "):"Ruhetag"+(src.length?" ("+src.join(", ")+")":"")};
+  return c.tg[ds]={kg,bmr,alltag,gymK,runK,otherK,stepK,stepBase:stp.base,stepAssumed:!!stp.assumed,km,tdee,adj,def:delta<0?-delta:0,sur:delta>0?delta:0,total,p:m.p,f:m.f,c:m.c,src:src.length&&!(src.every(x=>/ausgesetzt$/.test(x)))?src.join(" + "):"Ruhetag"+(src.length?" ("+src.join(", ")+")":"")};
 }
 /* ---------- kcal-Ziel anpassen: echter Verbrauch aus Essen + Gewichtstrend (settings/main.kcalAdj) ---------- */
 const AD={win:14,minDays:10,minWeigh:5,minSpan:9,step:150,max:600,kcalKg:7700};
@@ -2032,7 +2034,7 @@ function renderFood(){
   if(sug&&$("goKeep"))$("goKeep").onclick=()=>saveSettings({goal:"keep"});
   if(document.activeElement!==$("fGoal"))$("fGoal").value=CFG.goal;
   $("fBasis").textContent="Ziel basiert auf: "+T.src+" · "+fmtNum(T.kg,1)+" kg";
-  setHTML($("fCalc"),h`<dt>Grundumsatz × ${fmtNum(CFG.activity,CFG.activity%1?1:0)} (Alltag)</dt><dd>${f0(T.alltag)}</dd>${T.gymK?h`<dt>Gym</dt><dd>+${f0(T.gymK)}</dd>`:""}${T.runK?h`<dt>Laufen ${fmtKm(T.km)} km</dt><dd>+${f0(T.runK)}</dd>`:""}${T.otherK?h`<dt>Sonstiger Sport</dt><dd>+${f0(T.otherK)}</dd>`:""}${T.stepK?h`<dt>Schritte über ${f0(T.stepBase)}</dt><dd>+${f0(T.stepK)}</dd>`:""}${T.def?h`<dt>Defizit</dt><dd>−${f0(T.def)}</dd>`:""}${T.sur?h`<dt>Überschuss (Aufbau)</dt><dd>+${f0(T.sur)}</dd>`:""}${T.adj?h`<dt>Anpassung (echter Verbrauch)</dt><dd>${T.adj>0?"+":"−"}${f0(Math.abs(T.adj))}</dd>`:""}<dt class="sum">Ziel (gerundet)</dt><dd class="sum">${f0(T.total)} kcal</dd>`);
+  setHTML($("fCalc"),h`<dt>Grundumsatz × ${fmtNum(CFG.activity,CFG.activity%1?1:0)} (Alltag)</dt><dd>${f0(T.alltag)}</dd>${T.gymK?h`<dt>Gym</dt><dd>+${f0(T.gymK)}</dd>`:""}${T.runK?h`<dt>Laufen ${fmtKm(T.km)} km</dt><dd>+${f0(T.runK)}</dd>`:""}${T.otherK?h`<dt>Sonstiger Sport</dt><dd>+${f0(T.otherK)}</dd>`:""}${T.stepK?h`<dt>Schritte über ${f0(T.stepBase)}${T.stepAssumed?" (angenommen: "+f0(STEP_ASSUMED)+")":""}</dt><dd>+${f0(T.stepK)}</dd>`:""}${T.def?h`<dt>Defizit</dt><dd>−${f0(T.def)}</dd>`:""}${T.sur?h`<dt>Überschuss (Aufbau)</dt><dd>+${f0(T.sur)}</dd>`:""}${T.adj?h`<dt>Anpassung (echter Verbrauch)</dt><dd>${T.adj>0?"+":"−"}${f0(Math.abs(T.adj))}</dd>`:""}<dt class="sum">Ziel (gerundet)</dt><dd class="sum">${f0(T.total)} kcal</dd>`);
   $("fCalcTxt").textContent="Grundumsatz (Mifflin, "+CFG.height+" cm, "+CFG.age+" J.) × "+fmtNum(CFG.activity,1)+" für Job und Alltag. Gym ca. "+GYM_KCAL+" kcal. Laufen: deine Garmin-Kalorien abzüglich Ruheumsatz, sonst ca. 0,9 kcal pro kg und km. Eingetragene Einheiten zählen, sonst der Plan (nur heute und künftig). Entscheidend bleibt der Wochentrend auf der Waage.";
   // Wochenleiste (Tag wählen) und Tagebuch
   const mon=monday(ds),maxD=addDays(today(),1);
@@ -3547,7 +3549,7 @@ function renderSteps(){
   setHTML($("stRing"),ringSvg(v!=null?v/g:0,{size:96,stroke:10,cls:"r"}));
   if(document.activeElement!==$("stIn")&&!$("stIn").value)$("stIn").placeholder=v!=null?"aktuell "+f0(v):"z. B. 8450";
   const last7=[...Array(7)].map((_,i)=>dailyOn(addDays(t,i-6))).filter(x=>x&&x.steps!=null).map(x=>N(x.steps));
-  $("stInfo").textContent=(last7.length?"Ø 7 Tage "+f0(avg(last7))+" · "+last7.filter(x=>x>=g).length+"/"+last7.length+" Tage im Ziel · ":"")+"Schritte sind im Alltagsfaktor enthalten und erhöhen das kcal-Ziel nicht.";
+  $("stInfo").textContent=(last7.length?"Ø 7 Tage "+f0(avg(last7))+" · "+last7.filter(x=>x>=g).length+"/"+last7.length+" Tage im Ziel · ":"")+(v==null?"Ohne Eingabe rechnet Formora mit "+f0(STEP_ASSUMED)+" Schritten – trag am Abend die echte Zahl ein.":"Schritte über "+f0(stepBase())+" erhöhen das kcal-Ziel, darunter ändert sich nichts.");
   const days=[...Array(14)].map((_,i)=>addDays(t,i-13)),vals=days.map(x=>{const r=dailyOn(x);return r&&r.steps!=null?N(r.steps):0});
   setHTML($("cSteps"),vals.some(Boolean)?h`${barChart(days.map(x=>fmtD(x).slice(0,2)),vals,days.map(()=>g),"var(--accent)","Schritte der letzten 14 Tage: Ø "+f0(avg(vals.filter(Boolean)))+", Ziel "+f0(g))}<div class="legend"><span style="--c:var(--accent)">Schritte</span><span style="--c:var(--sunk)">Ziel</span></div>`:"");
   [$("stIn"),$("stSave")].forEach(x=>x.disabled=!db);

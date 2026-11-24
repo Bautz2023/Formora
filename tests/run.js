@@ -216,6 +216,21 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    {const o=await overflow(page);ok(o<=0,'Gym ohne Überlauf ('+o+'px)')}
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
+  console.log('Schritte: 10.000 angenommen, echte Zahl ersetzt');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page);await tab(page,'dash');
+   const T=()=>page.evaluate(d=>{invalidate();const t=targetFor(d);return {k:t.stepK,a:t.stepAssumed,b:t.stepBase,src:t.src,total:t.total}},D0);
+   const t0=await T(),exp=Math.round(Math.min(800,(10000-t0.b)*83*0.0005));
+   ok(t0.a===true&&t0.k===exp&&exp>0&&/10\.000 Schritte \(angenommen\)/.test(t0.src),'Ohne Eingabe: 10.000 Schritte angenommen (+'+t0.k+' kcal, '+t0.src+')');
+   ok((await page.textContent('#stInfo')).includes('Ohne Eingabe rechnet Formora mit 10.000'),'Schritte-Karte erklärt die Annahme');
+   ok(await page.evaluate(d=>{invalidate();return targetFor('2026-11-20').stepK>0&&targetFor('2026-11-20').stepAssumed},D0),'Auch Tage ohne Eintrag zählen mit der Annahme');
+   await page.evaluate(async d=>{await db.doc('daily/'+d).set({date:d,steps:16000})},D0);await page.waitForTimeout(400);
+   const t1=await T();
+   ok(t1.a===false&&t1.k===Math.round(Math.min(800,(16000-t1.b)*83*0.0005))&&t1.k>t0.k&&/16\.000 Schritte/.test(t1.src)&&!/angenommen/.test(t1.src),'Echte Zahl (16.000) ersetzt die Annahme: +'+t1.k+' kcal');
+   ok((await page.textContent('#stInfo')).includes('erhöhen das kcal-Ziel'),'Schritte-Karte nach Eingabe: Hinweis ohne Annahme');
+   await page.evaluate(async d=>{await db.doc('daily/'+d).set({date:d,steps:5000})},D0);await page.waitForTimeout(400);
+   const t2=await T();ok(t2.a===false&&t2.k===0&&t2.total<t0.total,'Wenig Schritte (5.000): kein Zuschlag, Ziel sinkt gegenüber der Annahme ('+t0.total+' → '+t2.total+' kcal)');
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
   console.log('Lauf-Tab: Laufen diese Woche und 5-km-Test');
   {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[0,2,4],run:[1,6]}});await tab(page,'dash');
    ok(await page.evaluate(()=>!document.getElementById('tKm').offsetParent&&!document.getElementById('tLeft').offsetParent),'Startseite: Kacheln „Laufen diese Woche“ und „5-km-Test“ weg');
