@@ -723,12 +723,6 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
       <details class="tree fold" id="habEditBox"><summary>Gewohnheiten bearbeiten</summary><div class="foldin" id="habEdit"></div></details>
     </div>
 
-    <div class="tiles">
-      <div class="tile wide"><span class="label">Laufen diese Woche</span><span class="num" id="tKm">0<small>km</small></span><span class="sub" id="tKmSub">Ziel –</span><div class="meter"><i id="tKmBar" style="width:0;background:var(--run)"></i></div></div>
-      <div class="tile" hidden style="display:none"><span class="label">Gewicht Ø 7 Tage</span><span class="num" id="tW">–<small>kg</small></span><span class="sub" id="tWSub">Ziel ca. 80 kg</span></div>
-      <div class="tile"><span class="label" id="tLeftL">Nächster 5-km-Test</span><span class="num" id="tLeft">–<small>Wo.</small></span><span class="sub" id="tLeftS"></span></div>
-    </div>
-
     <div class="card" hidden style="display:none">
       <div class="row sb"><h2 data-ico="route"><span id="planTitle">Laufplan diese Woche</span></h2><span class="label" id="planKm"></span></div>
       <dl class="planweek" id="planWeek"></dl>
@@ -1061,6 +1055,11 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
       </div></details>
       <label class="f">Notiz<textarea id="runNote" rows="2" maxlength="500" placeholder="z. B. Beine schwer, windig"></textarea></label>
       <button class="btn run wide" id="saveRun">Lauf speichern</button>
+    </div>
+    <div class="tiles">
+      <div class="tile wide"><span class="label">Laufen diese Woche</span><span class="num" id="tKm">0<small>km</small></span><span class="sub" id="tKmSub">Ziel –</span><div class="meter"><i id="tKmBar" style="width:0;background:var(--run)"></i></div></div>
+      <div class="tile" hidden style="display:none"><span class="label">Gewicht Ø 7 Tage</span><span class="num" id="tW">–<small>kg</small></span><span class="sub" id="tWSub">Ziel ca. 80 kg</span></div>
+      <div class="tile"><span class="label" id="tLeftL">Nächster 5-km-Test</span><span class="num" id="tLeft">–<small>Wo.</small></span><span class="sub" id="tLeftS"></span></div>
     </div>
     <div class="card" id="hmCard">
       <div class="row sb"><h2 data-ico="flag">Halbmarathon</h2><span class="label" id="hmState"></span></div>

@@ -80,6 +80,18 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    ok(dl.pick.run===pk&&!('skipRun' in dl)&&dl.addGym==='pull','Neue Auswahl ersetzt nur die alten Lauf-Felder, Gym bleibt');
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
+  console.log('Lauf-Tab: Laufen diese Woche und 5-km-Test');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[0,2,4],run:[1,6]}});await tab(page,'dash');
+   ok(await page.evaluate(()=>!document.getElementById('tKm').offsetParent&&!document.getElementById('tLeft').offsetParent),'Startseite: Kacheln „Laufen diese Woche“ und „5-km-Test“ weg');
+   await page.evaluate(async()=>{await db.collection('runs').add({date:'2026-11-23',type:'Easy',km:6,sec:2400})});await page.waitForTimeout(400);
+   await tab(page,'run');
+   const o=await page.evaluate(()=>{const sv=document.getElementById('saveRun').getBoundingClientRect().bottom,k=document.getElementById('tKm'),l=document.getElementById('tLeft'),hm=document.getElementById('hmCard').getBoundingClientRect().top;
+     return {vis:!!k.offsetParent&&!!l.offsetParent,afterSave:k.getBoundingClientRect().top>=sv-1,beforeHm:l.getBoundingClientRect().bottom<=hm+1,km:k.textContent,sub:document.getElementById('tKmSub').textContent}});
+   ok(o.vis&&o.afterSave&&o.beforeHm,'Lauf-Tab: Kacheln direkt unter „Lauf speichern“ (zweiter Punkt)');
+   ok(/6/.test(o.km)&&/Ziel/.test(o.sub),'Laufen diese Woche zeigt '+o.km.trim()+' · '+o.sub);
+   {const w=await overflow(page);ok(w<=0,'Lauf-Tab ohne Überlauf ('+w+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
   console.log('Startseite: Trainingsplan-Karte weg');
   {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page);await tab(page,'dash');
    ok(await page.evaluate(()=>!document.getElementById('planCard').offsetParent&&![...document.querySelectorAll('#v-dash h2')].some(h=>h.offsetParent&&h.textContent.trim()==='Trainingsplan')),'Karte „Trainingsplan“ ist auf der Startseite ausgeblendet');
