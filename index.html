@@ -773,12 +773,17 @@ details.tree summary .gpv{margin-left:auto}
       <summary><h2 data-ico="gear">Einstellungen</h2></summary>
       <div class="notice warn"><b>Datenschutz:</b> Wer diesen Link hat, sieht deine Daten – nicht teilen.</div>
       <label class="f">Start Woche 1 des Laufplans (Montag)<input type="date" id="startDate"></label>
+      <div class="pick" id="goalBox"><span class="label">Ziel</span>
+        <div class="chips" id="sGoal" role="group" aria-label="Ziel"><button class="chip" data-g="cut" aria-pressed="false">Abnehmen</button><button class="chip" data-g="keep" aria-pressed="false">Halten</button><button class="chip" data-g="bulk" aria-pressed="false">Zunehmen</button></div>
+        <label class="f">Tempo (Gramm pro Woche)<input id="sRate" inputmode="numeric" placeholder="z. B. 400"></label>
+        <div class="ex-last" id="sRateInfo"></div>
+        <button class="btn ghost" id="sRateSave">Tempo speichern</button>
+      </div>
       <div class="grid3">
         <label class="f">Größe cm<input id="sHeight" inputmode="numeric"></label>
         <label class="f">Alter<input id="sAge" inputmode="numeric"></label>
         <label class="f">Zielgewicht kg<input id="sGoalKg" inputmode="decimal"></label>
         <label class="f">Protein g<input id="sProtein" inputmode="numeric"></label>
-        <label class="f">Defizit kcal<input id="sDeficit" inputmode="numeric"></label>
         <label class="f">Alltagsfaktor<input id="sActivity" inputmode="decimal"></label>
         <label class="f">Schrittziel<input id="sSteps" inputmode="numeric"></label>
       </div>
@@ -4104,13 +4109,38 @@ function exportSettings(){const r=S.settingsRaw,gp={...(r.gymPlan||{})};
   const base={sched:schedOf(planInfo(today()).mode)};
   if(CFG.height>0)base.height=CFG.height;if(CFG.age>0)base.age=CFG.age;if(CFG.protein>0)base.protein=CFG.protein;if(CFG.goalKg>0)base.goalKg=CFG.goalKg;
   return {...base,...r,gymPlan:gp}}
-const SET_IDS={sHeight:"height",sAge:"age",sGoalKg:"goalKg",sProtein:"protein",sDeficit:"deficit",sActivity:"activity",sSteps:"stepGoal"};
+const SET_IDS={sHeight:"height",sAge:"age",sGoalKg:"goalKg",sProtein:"protein",sActivity:"activity",sSteps:"stepGoal"};
 function renderSettings(){
   if(document.activeElement!==$("startDate"))$("startDate").value=S.start;
   Object.entries(SET_IDS).forEach(([id,k])=>{if(document.activeElement!==$(id)&&!$(id).dataset.dirty)$(id).value=fmtNum(CFG[k],CFG[k]%1?1:0).replace(/\./g,"")});
   ["saveSet","impBtn","startDate",...Object.keys(SET_IDS)].forEach(id=>$(id).disabled=!db);
+  renderGoalBox();
 }
 Object.keys(SET_IDS).forEach(id=>$(id).addEventListener("input",()=>$(id).dataset.dirty="1"));
+/* ---------- Ziel und Tempo in Gramm pro Woche (gespeichert als deficit / surplus in kcal pro Tag) ---------- */
+const KCAL_PER_G=1.1;            // 7700 kcal pro kg ÷ 7 Tage = 1,1 kcal pro Tag je Gramm pro Woche
+const RATE_RANGE=[50,900];
+const rateOf=cfg=>cfg.goal==="cut"?Math.round(N(cfg.deficit)/KCAL_PER_G/10)*10:cfg.goal==="bulk"?Math.round(N(cfg.surplus)/KCAL_PER_G/10)*10:0;
+function renderGoalBox(){
+  const g=CFG.goal,keep=g==="keep",inp=$("sRate"),dirty=!!inp.dataset.dirty;
+  $("sGoal").querySelectorAll("[data-g]").forEach(b=>{b.setAttribute("aria-pressed",String(b.dataset.g===g));b.disabled=!db});
+  inp.disabled=!db||keep;$("sRateSave").disabled=!db||keep;
+  if(document.activeElement!==inp&&!dirty)inp.value=keep?"":String(rateOf(CFG));
+  const typed=dirty?num(inp.value):null,r=keep?0:(typed!=null&&typed>0?typed:rateOf(CFG)),kg=kgNow();
+  let t;
+  if(keep)t="Gewicht halten: kein Defizit und kein Überschuss.";
+  else{t="≈ "+f0(Math.round(r*KCAL_PER_G))+" kcal "+(g==="cut"?"weniger":"mehr")+" pro Tag";
+    if(kg>0&&CFG.goalKg>0&&r>0){const diff=g==="cut"?kg-CFG.goalKg:CFG.goalKg-kg;if(diff>0)t+=" · bis "+fmtKg(CFG.goalKg)+" kg etwa "+Math.ceil(diff/(r/1000))+" Wochen"}
+    if(kg>0&&r/1000>kg*.01)t+=" · Achtung: mehr als 1 % Körpergewicht pro Woche ist sehr schnell";}
+  $("sRateInfo").textContent=t;
+  const o=$("fGoal").options;o[0].textContent="Abnehmen"+(g==="cut"?" (ca. −"+rateOf(CFG)+" g/Woche)":"");o[2].textContent="Aufbauen"+(g==="bulk"?" (ca. +"+rateOf(CFG)+" g/Woche)":"");
+}
+$("sGoal").onclick=e=>{const b=e.target.closest("[data-g]");if(!b||b.disabled||b.dataset.g===CFG.goal)return;delete $("sRate").dataset.dirty;saveSettings({goal:b.dataset.g})};
+$("sRate").addEventListener("input",()=>{$("sRate").dataset.dirty="1";renderGoalBox()});
+$("sRateSave").onclick=()=>withBusy($("sRateSave"),async()=>{
+  const v=num($("sRate").value);if(!inR(v,RATE_RANGE)){toast("Tempo: "+RATE_RANGE.join(" bis ")+" g pro Woche");return}
+  const kcal=Math.min(1000,Math.round(v*KCAL_PER_G));delete $("sRate").dataset.dirty;
+  await saveSettings(CFG.goal==="cut"?{deficit:kcal}:{surplus:kcal})});
 $("saveSet").onclick=()=>withBusy($("saveSet"),async()=>{
   const p={};for(const [id,k] of Object.entries(SET_IDS)){const v=num($(id).value);if(!inR(v,CFG_RANGE[k])){toast($(id).parentElement.firstChild.textContent.trim()+": "+CFG_RANGE[k].join("–"));return}p[k]=v}
   Object.keys(SET_IDS).forEach(id=>delete $(id).dataset.dirty);await saveSettings(p);

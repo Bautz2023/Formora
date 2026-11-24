@@ -231,6 +231,34 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    const t2=await T();ok(t2.a===false&&t2.k===0&&t2.total<t0.total,'Wenig Schritte (5.000): kein Zuschlag, Ziel sinkt gegenüber der Annahme ('+t0.total+' → '+t2.total+' kcal)');
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
+  console.log('Ziel: Tempo in Gramm pro Woche');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{goal:'cut',deficit:450,goalKg:78});await tab(page,'dash');
+   await page.evaluate(()=>{$('setCard').open=true});await page.waitForTimeout(200);
+   const tot=()=>page.evaluate(d=>{invalidate();return targetFor(d).total},D0);
+   ok((await page.$$('#sGoal [data-g]')).length===3&&await page.getAttribute('#sGoal [data-g="cut"]','aria-pressed')==='true','Einstellungen: Abnehmen / Halten / Zunehmen, Abnehmen gewählt');
+   ok(await page.inputValue('#sRate')==='410'&&(await page.textContent('#sRateInfo')).includes('≈ 451 kcal weniger'),'Bisheriges Defizit (450 kcal) als Gramm gezeigt: '+await page.inputValue('#sRate')+' g pro Woche');
+   ok(/bis 78 kg etwa \d+ Wochen/.test(await page.textContent('#sRateInfo')),'Hinweis zur Dauer bis zum Zielgewicht: '+(await page.textContent('#sRateInfo')));
+   const t0=await tot();
+   await page.fill('#sRate','600');await page.waitForTimeout(100);
+   ok((await page.textContent('#sRateInfo')).includes('≈ 660 kcal weniger'),'Live-Hinweis beim Tippen (600 g → 660 kcal)');
+   await page.click('#sRateSave');await page.waitForTimeout(500);
+   ok(await page.evaluate(()=>window.__store.settings.get('main').deficit===660&&CFG.deficit===660),'600 g pro Woche gespeichert (Defizit 660 kcal)');
+   const t1=await tot();ok(t1<t0&&t0-t1>=150,'Kalorienziel passt sich an ('+t0+' → '+t1+' kcal)');
+   ok(await page.evaluate(()=>/−600 g\/Woche/.test($('fGoal').options[0].textContent)),'Auswahl in der Essen-Ansicht zeigt −600 g/Woche');
+   await page.fill('#sRate','5000');await page.click('#sRateSave');await page.waitForTimeout(300);
+   ok((await page.textContent('#toastT')).includes('50 bis 900')&&await page.evaluate(()=>CFG.deficit===660),'Unsinniges Tempo (5000 g) wird abgelehnt');
+   await page.fill('#sRate','1200');ok((await page.textContent('#sRateInfo')).includes('sehr schnell'),'Warnung bei mehr als 1 % Körpergewicht pro Woche');
+   await page.fill('#sRate','');await page.evaluate(()=>{delete $('sRate').dataset.dirty});
+   await page.click('#sGoal [data-g="bulk"]');await page.waitForTimeout(500);
+   ok(await page.evaluate(()=>CFG.goal==='bulk')&&await page.inputValue('#sRate')==='230','Zunehmen: eigenes Tempo (Überschuss 250 kcal = 230 g)');
+   await page.fill('#sRate','300');await page.click('#sRateSave');await page.waitForTimeout(500);
+   ok(await page.evaluate(()=>CFG.surplus===330&&CFG.deficit===660&&window.__store.settings.get('main').surplus===330),'Zunehmen: 300 g → Überschuss 330 kcal, Defizit bleibt unverändert');
+   ok((await tot())>t1+500,'Kalorienziel steigt über das Abnehm-Ziel ('+(await tot())+' kcal)');
+   await page.click('#sGoal [data-g="keep"]');await page.waitForTimeout(500);
+   ok(await page.isDisabled('#sRate')&&(await page.textContent('#sRateInfo')).includes('Gewicht halten')&&await page.evaluate(()=>goalDelta(CFG)===0),'Halten: Tempo-Feld gesperrt, kein Defizit');
+   {const o=await overflow(page);ok(o<=0,'Einstellungen ohne Überlauf ('+o+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
   console.log('Lauf-Tab: Laufen diese Woche und 5-km-Test');
   {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[0,2,4],run:[1,6]}});await tab(page,'dash');
    ok(await page.evaluate(()=>!document.getElementById('tKm').offsetParent&&!document.getElementById('tLeft').offsetParent),'Startseite: Kacheln „Laufen diese Woche“ und „5-km-Test“ weg');
