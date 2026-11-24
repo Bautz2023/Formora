@@ -1,11 +1,15 @@
 {
   "name": "formora",
-  "version": "69.0.0",
+  "version": "70.0.0",
   "private": true,
   "description": "Formora – Fitness-App (Training, Laufen, Ernährung) mit Konten über Supabase",
   "scripts": {
     "build": "mkdir -p _site && python3 tools/build_cloud.py index.html _site/index.html",
-    "test:cloud": "python3 tools/build_cloud.py index.html tests/cloud_test.html tests/cloud_test_config.json && node tests/cloud.js tests/cloud_test.html node_modules/@supabase/supabase-js/dist/umd/supabase.js"
+    "test": "node tests/kcal.unit.js && node tests/run.js",
+    "test:unit": "node tests/kcal.unit.js",
+    "test:cloud": "python3 tools/build_cloud.py index.html tests/cloud_test.html tests/cloud_test_config.json && node tests/cloud.js tests/cloud_test.html node_modules/@supabase/supabase-js/dist/umd/supabase.js",
+    "build:teilen": "python3 tools/build_teilen.py index.html tests/teilen_test.html",
+    "test:teilen": "python3 tools/build_teilen.py index.html tests/teilen_test.html && node tests/teilen.js tests/teilen_test.html"
   },
   "devDependencies": {
     "playwright": "^1.56.1",

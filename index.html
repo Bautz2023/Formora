@@ -568,6 +568,67 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
 .paprog{height:4px;background:var(--line);border-radius:9px}.paprog i{display:block;height:4px;border-radius:9px;background:var(--accent)}
 .pasum{display:flex;flex-direction:column;gap:6px;font-size:14px}.pasum ul{margin:0;padding-left:18px}
   .km-in{width:64px;min-height:36px;padding:4px 8px;border:1px solid var(--line,#ccc);border-radius:8px;background:var(--bg2,transparent);color:inherit;font:inherit;text-align:center}
+/* v70 Startseite: Auswahl, Kreise, Wochenplanung */
+.pick{display:flex;flex-direction:column;gap:10px}
+.seg2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.segb{font:650 16px/1 var(--display);display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;border-radius:var(--r-sm);border:0;background:var(--sunk);color:var(--ink);cursor:pointer;box-shadow:inset 0 0 0 1px var(--edge,transparent);transition:background .2s,color .2s,transform .12s}
+.segb svg{width:20px!important;height:20px!important;flex:0 0 auto}
+.segb[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.segb:active{transform:scale(.97)}
+.segb .ck{font-size:13px;font-weight:700}
+.pkrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stepper{display:flex;align-items:center;gap:6px}
+.stp{width:40px;height:40px;border-radius:50%;border:0;background:var(--sunk);color:var(--ink);font:700 20px/1 var(--display);cursor:pointer}
+.stp:active{transform:scale(.94)}
+.km-in{width:64px;min-height:40px;padding:4px 8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:inherit;font:600 16px/1 var(--display);text-align:center}
+.pkk{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pkk b{font:700 18px/1.1 var(--display)}
+.pkg{display:grid;grid-template-columns:repeat(auto-fit,minmax(46px,1fr));gap:6px}
+.pkg .chip{padding:9px 0;text-align:center;justify-content:center}
+.pkdone{color:var(--good);font-weight:600}
+.orbs{display:grid;gap:12px;justify-items:center}
+.orbs.o2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.orbs.o3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.orb{width:100%;max-width:150px;aspect-ratio:1;border-radius:50%;border:0;background:var(--surface);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px;cursor:pointer;
+  box-shadow:var(--lift,none),inset 0 0 0 1px var(--edge,transparent);transition:transform .2s ease,box-shadow .25s ease}
+.orb .oi{width:26px;height:26px;color:var(--accent)}.orb .oi svg,.segb svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.orb .ol{font:650 13.5px/1.15 var(--display);text-align:center;hyphens:manual}
+.orb .ov{font-size:11.5px;line-height:1.2;color:var(--muted);text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.orbs.o3 .orb .ol{font-size:12.5px}.orbs.o3 .orb .ov{font-size:11px}
+.orb[aria-expanded="true"]{box-shadow:0 0 0 3px var(--accent),var(--lift,none);transform:scale(1.03)}
+.orb:active{transform:scale(.96)}
+.orbp{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .35s ease,opacity .3s ease,margin .35s ease;margin-top:-14px}
+.orbp.open{grid-template-rows:1fr;opacity:1;margin-top:0}
+.orbin{overflow:hidden;min-height:0;position:relative}
+.orbx{position:absolute;top:10px;right:10px;z-index:2;width:34px;height:34px;border-radius:50%;border:0;background:var(--sunk);color:var(--ink);font-size:15px;cursor:pointer}
+.orbcard>summary{display:none}
+.orbcard{padding-top:16px}
+.orbcard>.row.sb:first-child,.orbcard>h2:first-child{padding-right:40px}
+@media (prefers-reduced-motion:reduce){.orbp,.orb,.segb{transition:none}}
+.wpnav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.wpdays{display:flex;flex-direction:column;gap:6px}
+.wpd{display:grid;grid-template-columns:76px 1fr auto;align-items:center;gap:4px 10px;width:100%;text-align:left;border:0;border-radius:var(--r-sm);background:var(--sunk);color:var(--ink);padding:10px 12px;cursor:pointer;font:inherit}
+.wpd[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--accent)}
+.wpd.today .wpn{color:var(--accent)}
+.wpn{font:650 14px/1.2 var(--display)}
+.wpw{font-size:13px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wpk{font:650 13px/1 var(--display);text-align:right;white-space:nowrap}
+.wpk.over{color:var(--bad)}
+.wpbar{grid-column:1/-1;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.wpbar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.wpbar.over i{background:var(--bad)}
+.wped{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:12px}
+.wpml{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
+.wpml li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px}
+.wpml li span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wpx{border:0;background:none;color:var(--muted);font-size:15px;cursor:pointer;padding:4px 6px}
+.wpbal{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px;margin:0}
+.wpbal dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.wpbal .tot{font:700 17px/1.2 var(--display)}
+.wpfree{font:700 22px/1.1 var(--display)}
+.wpfree.over{color:var(--bad)}
+.sheet.planmode #copyY,.sheet.planmode #copyYWrap{display:none}
+.planbar{background:var(--tint,var(--sunk));color:var(--ink);border-radius:var(--r-sm);padding:8px 12px;font-size:14px}
 </style>
 
 <div class="wrap">
@@ -613,6 +674,46 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
 
     <div class="card" id="adDash" hidden></div>
 
+    <div class="orbs o2" role="group" aria-label="Auswertung">
+      <button class="orb" data-orb="tr" aria-expanded="false" aria-controls="orbP-tr"><span class="oi" data-ico-raw="dumbbell"></span><span class="ol">Training prüfen</span><span class="ov" id="orbV-tr">–</span></button>
+      <button class="orb" data-orb="coach" aria-expanded="false" aria-controls="orbP-coach"><span class="oi" data-ico-raw="heart"></span><span class="ol">Coach-Check</span><span class="ov" id="orbV-coach">–</span></button>
+    </div>
+    <div class="orbp" id="orbP-tr" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="tr" aria-label="Schließen">✕</button>
+    <div class="card orbcard" id="trDash"></div>
+    </div></div>
+    <div class="orbp" id="orbP-coach" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="coach" aria-label="Schließen">✕</button>
+    <details class="card orbcard" id="coachCard" open>
+      <summary><h2 data-ico="heart">Coach-Check</h2><span class="label" id="coachState"></span></summary>
+      <div id="coachBody"></div>
+    </details>
+    </div></div>
+    <div class="orbs o3" role="group" aria-label="Planung">
+      <button class="orb" data-orb="pa" aria-expanded="false" aria-controls="orbP-pa"><span class="oi" data-ico-raw="checkin"></span><span class="ol">Plan-Assistent</span><span class="ov" id="orbV-pa">–</span></button>
+      <button class="orb" data-orb="wp" aria-expanded="false" aria-controls="orbP-wp"><span class="oi" data-ico-raw="cal"></span><span class="ol">Plan dieser Woche</span><span class="ov" id="orbV-wp">–</span></button>
+      <button class="orb" data-orb="wk" aria-expanded="false" aria-controls="orbP-wk"><span class="oi" data-ico-raw="route"></span><span class="ol">Trainings&shy;woche</span><span class="ov" id="orbV-wk">–</span></button>
+    </div>
+    <div class="orbp" id="orbP-pa" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="pa" aria-label="Schließen">✕</button>
+    <div class="card orbcard" id="paCard">
+      <div class="row sb"><h2 data-ico="checkin">Plan-Assistent</h2><span class="label" id="paState"></span></div>
+      <div class="ex-last">Ein paar Fragen zu Ziel, Erfahrung, Trainingstagen und dir – Formora erstellt daraus deinen Trainingsplan, deine Woche und dein Kalorienziel.</div>
+      <button class="btn ghost" data-pa-open="1">Plan-Assistent starten</button>
+    </div>
+    </div></div>
+    <div class="orbp" id="orbP-wp" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="wp" aria-label="Schließen">✕</button>
+    <div class="card orbcard" id="wpCard"><div class="row sb"><h2 data-ico="cal">Plan dieser Woche</h2></div><div id="wpBody"></div></div>
+    </div></div>
+    <div class="orbp" id="orbP-wk" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="wk" aria-label="Schließen">✕</button>
+    <details class="card orbcard" id="wkSetCard" open>
+      <summary><h2 data-ico="cal">Trainingswoche einstellen</h2></summary>
+      <div class="wkset" id="wkSet"></div>
+    </details>
+    <div class="card" id="wkTakeCard">
+      <div class="row sb"><h2 data-ico="dumbbell">Plan aus dieser Woche</h2></div>
+      <div class="ex-last" id="wkTakeInfo"></div>
+      <button class="btn ghost" id="wkTake">Übungen und Sätze übernehmen</button>
+    </div>
+    </div></div>
+
     <div class="card" id="habCard" hidden style="display:none">
       <div class="row sb"><h2 data-ico="flame">Gewohnheiten</h2><span class="label" id="habState"></span></div>
       <div class="habs" id="habList"></div>
@@ -634,12 +735,7 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
     <div class="card chart" hidden style="display:none"><h2 data-ico="scale">Körpergewicht</h2><div id="wTrend"></div><details class="tree fold"><summary>Diagramm anzeigen</summary><div class="foldin"><div id="cWeight"></div></div></details></div>
     <div class="card chart"><h2 data-ico="dumbbell">Trainingsvolumen</h2><details class="tree fold"><summary>Diagramm anzeigen</summary><div class="foldin"><div class="ex-last">kg × Wiederholungen pro Einheit · Klimmzüge und Beinheben mit Körpergewicht + Zusatzgewicht</div><div id="cVol"></div></div></details></div>
 
-    <div class="card" id="trDash" hidden></div>
 
-    <details class="card" id="coachCard" open>
-      <summary><h2 data-ico="heart">Coach-Check</h2><span class="label" id="coachState"></span></summary>
-      <div id="coachBody"></div>
-    </details>
 
     <details class="card" id="planCard">
       <summary><h2 data-ico="route">Trainingsplan</h2></summary>
@@ -647,22 +743,8 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
       <div id="planList"></div>
     </details>
 
-    <div class="card" id="wkTakeCard">
-      <div class="row sb"><h2 data-ico="dumbbell">Plan aus dieser Woche</h2></div>
-      <div class="ex-last" id="wkTakeInfo"></div>
-      <button class="btn ghost" id="wkTake">Übungen und Sätze übernehmen</button>
-    </div>
 
-    <div class="card" id="paCard">
-      <div class="row sb"><h2 data-ico="checkin">Plan-Assistent</h2><span class="label" id="paState"></span></div>
-      <div class="ex-last">Ein paar Fragen zu Ziel, Erfahrung, Trainingstagen und dir – Formora erstellt daraus deinen Trainingsplan, deine Woche und dein Kalorienziel.</div>
-      <button class="btn ghost" data-pa-open="1">Plan-Assistent starten</button>
-    </div>
 
-    <details class="card" id="wkSetCard">
-      <summary><h2 data-ico="cal">Trainingswoche einstellen</h2></summary>
-      <div class="wkset" id="wkSet"></div>
-    </details>
 
     <details class="card" id="histCard" hidden style="display:none">
       <summary><h2 data-ico="list">Verlauf</h2></summary>
@@ -837,6 +919,9 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
         <button class="chip" data-day="push" aria-pressed="true">Push</button>
         <button class="chip" data-day="pull" aria-pressed="false">Pull</button>
         <button class="chip" data-day="ok" aria-pressed="false">Oberkörper</button>
+        <button class="chip" data-day="uk" aria-pressed="false">Unterkörper</button>
+        <button class="chip" data-day="gk" aria-pressed="false">Ganzkörper</button>
+        <button class="chip" data-day="beine" aria-pressed="false">Beine</button>
       </div>
       <label class="f">Datum<input type="date" id="gymDate"></label>
       <div class="ex-last" id="draftInfo"></div>
@@ -1082,9 +1167,15 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
 let TEMPLATES={
   push:{name:"Push",ex:[["Flachbankdrücken Maschine",3,"6–10"],["Schulterdrücken",2,"8–12"],["Butterfly",2,"8–12"],["Seitheben",2,"12–15"],["Trizeps Überkopf",3,"10–15"],["Crunch am Kabel",3,"10–15"],["Bulgarian Split Squats",3,"8–10 / Seite"],["Rumänisches Kreuzheben",2,"8–10"]]},
   pull:{name:"Pull",ex:[["Klimmzüge",3,"5–10"],["Rudern",3,"8–12"],["Überzüge",2,"10–15"],["Reverse Butterfly",3,"8–12"],["Beinheben",2,"8–10"],["Scott-Curls",3,"10–12"],["Beinbeuger",2,"10–12"],["Wadenheben",2,"12–15"]]},
-  ok:{name:"Oberkörper",ex:[["Schrägbankdrücken Maschine",3,"6–10"],["Rudern",3,"8–12"],["Butterfly",2,"8–12"],["Überzüge",2,"8–12"],["Reverse Butterfly",2,"12–15"],["Seitheben",2,"12–15"],["Bizeps (Supersatz)",2,"10–12"],["Trizeps (Supersatz)",2,"10–12"],["Crunch",3,"8–12"],["Rumänisches Kreuzheben",2,"8–10"]]}
+  ok:{name:"Oberkörper",ex:[["Schrägbankdrücken Maschine",3,"6–10"],["Rudern",3,"8–12"],["Butterfly",2,"8–12"],["Überzüge",2,"8–12"],["Reverse Butterfly",2,"12–15"],["Seitheben",2,"12–15"],["Bizeps (Supersatz)",2,"10–12"],["Trizeps (Supersatz)",2,"10–12"],["Crunch",3,"8–12"],["Rumänisches Kreuzheben",2,"8–10"]]},
+  uk:{name:"Unterkörper",ex:[["Beinpresse",3,"8–12"],["Rumänisches Kreuzheben",3,"8–10"],["Bulgarian Split Squats",2,"8–10 / Seite"],["Beinbeuger",3,"10–12"],["Beinstrecker",2,"10–15"],["Wadenheben",3,"12–15"],["Crunch am Kabel",2,"10–15"]]},
+  gk:{name:"Ganzkörper",ex:[["Beinpresse",3,"8–12"],["Flachbankdrücken Maschine",3,"6–10"],["Latzug Maschine",3,"8–12"],["Schulterdrücken",2,"8–12"],["Rudern",2,"8–12"],["Beinbeuger",2,"10–12"],["Crunch",2,"10–15"]]},
+  beine:{name:"Beine",ex:[["Kniebeugen",3,"6–10"],["Beinpresse",3,"10–12"],["Rumänisches Kreuzheben",3,"8–10"],["Ausfallschritte",2,"10 / Seite"],["Beinbeuger",3,"10–12"],["Beinstrecker",2,"12–15"],["Wadenheben",3,"12–15"]]}
 };
-const GYM_ORDER=["push","pull","ok"];
+const GYM_ORDER=["push","pull","ok"];   // Reihenfolge im Wochenplan (Rotation)
+/** Alle wählbaren Einheiten (Startseite, Gym-Tab, Plan-Editor). Neue Einheit = Eintrag hier + Vorlage in TEMPLATES */
+const GYM_ALL=["ok","uk","gk","push","pull","beine"];
+const GYM_LBL={ok:"OK",uk:"UK",gk:"GK",push:"Push",pull:"Pull",beine:"Beine"};
 const DEFAULT_TEMPLATES=JSON.parse(JSON.stringify(TEMPLATES));
 /* Übungsdatenbank: [Name, Muskelgruppe, Gerät, Flags] – c = Grundübung (3:00 Pause), l = Beine (+5 kg), b = 0 kg erlaubt, v = Volumen mit Körpergewicht,
    s = Halteübung (Sekunden statt Wdh., v64), x = Calisthenics, a = Skill für Fortgeschrittene (nicht im Plan-Assistenten) */
@@ -1148,6 +1239,12 @@ const CFG_RANGE={height:[120,230],age:[14,99],protein:[50,300],deficit:[0,1000],
 const LIMITS={bodyKg:[40,200],runKm:[0.5,60],pace:[150,900],hr:[60,220],restHr:[30,120],gymKg:[0,400],reps:[1,100],kcal:[1,3000],macro:[0,500],macroTol:1.3,steps:[0,100000]};
 const TXT={name:200,note:500,splits:200};
 const GYM_KCAL=250, RUN_KCAL_PER_KG_KM=0.9, REST_KCAL_PER_MIN=1.3, PROTEIN_EVENING=110;
+/** Laufen: kcal = (MET − 1) × kg × Stunden (netto – der Ruheumsatz steckt schon im Grundumsatz).
+    MET nach Tempo (km/h → MET, Compendium of Physical Activities), hier zentral anpassbar. */
+const MET_RUN=[[6.4,6.0],[8.0,8.3],[8.4,9.0],[9.7,9.8],[10.8,10.5],[11.3,11.0],[12.1,11.5],[12.9,11.8],[13.8,12.3],[14.5,12.8],[16.1,14.5]];
+function metRun(kmh){const T=MET_RUN;kmh=Number(kmh);if(!(kmh>0))return 0;if(kmh<=T[0][0])return T[0][1];
+  for(let i=1;i<T.length;i++)if(kmh<=T[i][0]){const [a,ma]=T[i-1],[b,mb]=T[i];return ma+(mb-ma)*(kmh-a)/(b-a)}return T[T.length-1][1]}
+function runKcalNet(km,sec,kg){km=Number(km);sec=Number(sec);kg=Number(kg);if(!(km>0&&sec>0&&kg>0))return 0;const hr=sec/3600;return Math.max(0,(metRun(km/hr)-1)*kg*hr)}
 
 /* Ziel-Paces in s/km (lo = schnelles Ende, hi = langsames Ende) – Grundwerte für HM 1:58 h.
    applyPaces() skaliert sie: in der HM-Vorbereitung nach der Zielzeit, im Aufbau nach dem letzten 5-km-Test. */
@@ -1376,7 +1473,7 @@ const schedOf=mode=>CFG.sched||{gym:[0,2,4],run:mode==="hm"?[1,3,6]:[3,6]};
 const RUN_ROLES={1:["long"],2:["q","long"],3:["easy","q","long"],4:["easy","q","easy","long"],5:["easy","q","easy","easy","long"]};
 const EASY_KM_BASE=7,ADD_RUN={easy:7,long:13};
 const okWd=()=>{const g=schedOf(planInfo(today()).mode).gym;return g.length>=3?g[2]:g.length?g[g.length-1]:4};
-function planDay(ds){
+function planDay(ds,noPick){
   const I=planInfo(ds),wd=(parseD(ds).getDay()+6)%7,P=I.P,SC=schedOf(I.mode);
   const gi=SC.gym.indexOf(wd),gym=gi>=0?GYM_ORDER[gi%3]:null;let run=null;
   const easyTxt=(k,lbl)=>lbl+" "+fmtKm(k)+" km · "+paceTxt(PACES.easy)+"/km, Puls ≤ "+PACES.easy.hr;
@@ -1391,17 +1488,25 @@ function planDay(ds){
     :{kind:"long",role,type:"Long Run",km:sk(P.long.km),scaled:true,text:longTxt(sk(P.long.km))};
   if(isRace&&ds===I.race.date)run={kind:"long",role:"race",type:"Wettkampf",km:21.1,text:"Halbmarathon · Ziel "+fmtHM(I.race.goal)+" h · "+paceTxt(PACES.race)+"/km"};
   // Eigene Länge (daily.runKm, optional): ersetzt die geplanten km, Text und kcal-Ziel passen sich an
-  const dl0=dailyOn(ds);
+  const dl0=noPick?null:dailyOn(ds);
   if(dl0&&run&&run.role!=="race"&&N(dl0.runKm)>0){const k=N(dl0.runKm);run={...run,km:k,adjusted:true,text:run.text.replace(/\d[\d.,]*( km)/,fmtKm(k)+"$1")}}
   // Ausgesetzt (daily.skipGym / daily.skipRun): Tag zählt wie ein Ruhetag, auch fürs kcal-Ziel
-  const dl=dailyOn(ds),skip={},added={};let g=gym;
+  const dl=noPick?null:dailyOn(ds),skip={},added={};let g=gym;
+  const run0=run;
   if(dl&&dl.skipGym&&g){skip.gym=g;g=null}
   if(dl&&dl.skipRun&&run){skip.run=run;run=null}
   // Hinzugefügt (daily.addGym = Einheit, daily.addRun = km, daily.addRunKind = easy|long): zählt wie geplant
-  if(dl&&!g&&!skip.gym&&GYM_ORDER.includes(dl.addGym)){g=dl.addGym;added.gym=true}
+  if(dl&&!g&&!skip.gym&&GYM_ALL.includes(dl.addGym)){g=dl.addGym;added.gym=true}
   if(dl&&!run&&!skip.run&&N(dl.addRun)>0){const k=N(dl.addRun),lg=dl.addRunKind==="long";
     run={kind:lg?"long":"easy",role:lg?"long":"easy",type:lg?"Long Run":"Easy",km:k,added:true,text:lg?longTxt(k):easyTxt(k,"Normaler Lauf")};added.run=true}
-  return {wk:I.wk,mode:I.mode,wd,gym:g,run,P,I,skip,added};
+  // Auswahl für den Tag (daily.pick, optional): {gym:"push"|…|null, run:km|0}. Fehlt ein Schlüssel, gilt der Plan
+  const pk=!noPick&&dl&&dl.pick&&typeof dl.pick==="object"?dl.pick:null;
+  if(pk&&"gym" in pk){g=GYM_ALL.includes(pk.gym)&&TEMPLATES[pk.gym]?pk.gym:null;delete skip.gym;added.gym=!!g&&g!==gym;if(!g&&gym)skip.gym=gym}
+  if(pk&&"run" in pk){const k=N(pk.run);delete skip.run;added.run=false;
+    if(run0&&run0.role==="race")run=k>0?run0:null;
+    else if(k>0){run=run0?{...run0,km:k,adjusted:k!==run0.km,text:run0.text.replace(/\d[\d.,]*( km)/,fmtKm(k)+"$1")}:{kind:"easy",role:"easy",type:"Easy",km:k,added:true,text:easyTxt(k,"Lauf")};added.run=!run0}
+    else{run=null;if(run0)skip.run=run0}}
+  return {wk:I.wk,mode:I.mode,wd,gym:g,run,P,I,skip,added,pick:pk};
 }
 
 const fmtDist=d=>d<1?Math.round(d*1000)+" m":fmtKm(d)+" km";
@@ -1513,6 +1618,12 @@ function cache(){if(C&&C.t===today())return C;
   const bw=S.body.filter(b=>isDate(b.date)&&N(b.kg)>0).sort(byDate);
   C={t:today(),bw,tg:{},kg:null};return C}
 const invalidate=()=>{C=null};
+/** Tempo für geplante Läufe (s/km): Ø der letzten 5 Läufe (60 Tage, ab 2 km), sonst Mitte der Easy-Pace */
+function runPaceNow(){const c=cache();if(c.pace)return c.pace;const from=addDays(c.t,-60);
+  const L=S.runs.filter(r=>isDate(r.date)&&r.date>=from&&r.date<=c.t&&N(r.km)>=2&&N(r.sec)>0).sort(byDate).slice(-5);
+  const pc=L.length?sum(L.map(r=>N(r.sec)))/sum(L.map(r=>N(r.km))):(N(PACES.easy.lo)+N(PACES.easy.hi))/2||400;
+  return c.pace=Math.max(180,Math.min(900,pc))}
+const runPlanKcal=(km,kg)=>runKcalNet(km,N(km)*runPaceNow(),kg);
 function kgNow(){const c=cache();if(c.kg!=null)return c.kg;const t=c.t,a=c.bw.filter(b=>b.date>addDays(t,-7)&&b.date<=t);
   return c.kg=a.length?avg(a.map(b=>N(b.kg))):c.bw.length?N(c.bw[c.bw.length-1].kg):83}
 /* Trainingsarten für „Meine Woche“ (Kalorienrechner) */
@@ -1522,8 +1633,8 @@ const OTHER_KCAL_PER_KG_H=4; // moderater Sport (Rad, Schwimmen, Kurse) netto ü
 function dayLoad(w,kg){
   const t=w&&WEEK_TYPES[w.t]?w.t:"rest",n=N(w&&w.v);
   if(t==="gym"){const min=n||60;return {gymK:GYM_KCAL*min/60,km:0,runK:0,otherK:0,label:"Gym "+f0(min)+" Min"}}
-  if(t==="run")return {gymK:0,km:n,runK:RUN_KCAL_PER_KG_KM*kg*n,otherK:0,label:n?"Lauf "+fmtKm(n)+" km":"Lauf"};
-  if(t==="gymrun")return {gymK:GYM_KCAL,km:n,runK:RUN_KCAL_PER_KG_KM*kg*n,otherK:0,label:"Gym + Lauf"+(n?" "+fmtKm(n)+" km":"")};
+  if(t==="run")return {gymK:0,km:n,runK:runPlanKcal(n,kg),otherK:0,label:n?"Lauf "+fmtKm(n)+" km":"Lauf"};
+  if(t==="gymrun")return {gymK:GYM_KCAL,km:n,runK:runPlanKcal(n,kg),otherK:0,label:"Gym + Lauf"+(n?" "+fmtKm(n)+" km":"")};
   if(t==="other"){const min=n||45;return {gymK:0,km:0,runK:0,otherK:OTHER_KCAL_PER_KG_H*kg*min/60,label:"Sport "+f0(min)+" Min"}}
   return {gymK:0,km:0,runK:0,otherK:0,label:"Ruhetag"};
 }
@@ -1543,13 +1654,16 @@ function targetFor(ds){
   const W=future&&useWeek?dayLoad(CFG.week[(parseD(ds).getDay()+6)%7],kg):null;
   let gymK=gymLog?GYM_KCAL:0,runK=0,km=0,otherK=0;const src=[];
   if(!gymLog&&future)gymK=W?W.gymK:d.gym?GYM_KCAL:0;
-  if(runsLog.length)runsLog.forEach(r=>{const rk=N(r.km);km+=rk;runK+=N(r.kcal)?Math.max(0,N(r.kcal)-N(r.sec)/60*REST_KCAL_PER_MIN):RUN_KCAL_PER_KG_KM*kg*rk});
-  else if(future){if(W){km=W.km;runK=W.runK}else if(d.run){km=d.run.km;runK=RUN_KCAL_PER_KG_KM*kg*km}}
+  if(runsLog.length)runsLog.forEach(r=>{const rk=N(r.km);km+=rk;runK+=N(r.kcal)?Math.max(0,N(r.kcal)-N(r.sec)/60*REST_KCAL_PER_MIN):runKcalNet(rk,N(r.sec)||rk*runPaceNow(),kg)});
+  else if(future){if(W){km=W.km;runK=W.runK}else if(d.run){km=d.run.km;runK=runPlanKcal(km,kg)}}
   if(W)otherK=W.otherK;
   const dS=dailyOn(ds);if(dS&&dS.skipGym&&!gymLog)gymK=0;if(dS&&dS.skipRun&&!runsLog.length){runK=0;km=0}
-  if(d.added.gym&&!gymLog&&future)gymK=GYM_KCAL;if(d.added.run&&!runsLog.length&&future){km=d.run.km;runK=RUN_KCAL_PER_KG_KM*kg*km}
-  if(gymK)src.push(gymLog?"Gym (eingetragen)":d.added.gym?TEMPLATES[d.gym].name+" (hinzugefügt)":W?"Gym (meine Woche)":TEMPLATES[d.gym].name+" (Plan)");
-  if(km)src.push("Lauf "+fmtKm(km)+" km"+(runsLog.length?" (eingetragen)":d.added.run?" (hinzugefügt)":W?" (meine Woche)":" (Plan)"));
+  if(d.added.gym&&!gymLog&&future)gymK=GYM_KCAL;if(d.added.run&&!runsLog.length&&future){km=d.run.km;runK=runPlanKcal(km,kg)}
+  const pk=dS&&dS.pick&&typeof dS.pick==="object"?dS.pick:null,pkG=!!pk&&"gym" in pk,pkR=!!pk&&"run" in pk;
+  if(future&&pkG&&!gymLog)gymK=d.gym?GYM_KCAL:0;
+  if(future&&pkR&&!runsLog.length){km=d.run?d.run.km:0;runK=d.run?runPlanKcal(km,kg):0}
+  if(gymK)src.push(gymLog?"Gym (eingetragen)":pkG&&d.gym?TEMPLATES[d.gym].name+" (gewählt)":d.added.gym?TEMPLATES[d.gym].name+" (hinzugefügt)":W?"Gym (meine Woche)":TEMPLATES[d.gym].name+" (Plan)");
+  if(km)src.push("Lauf "+fmtKm(km)+" km"+(runsLog.length?" (eingetragen)":pkR?" (gewählt)":d.added.run?" (hinzugefügt)":W?" (meine Woche)":" (Plan)"));
   if(otherK)src.push(W.label+" (meine Woche)");
   if(d.skip&&d.skip.gym&&!gymLog)src.push("Gym ausgesetzt");if(d.skip&&d.skip.run&&!runsLog.length)src.push("Lauf ausgesetzt");
   const stp=stepBonus(ds,kg);if(stp.k)src.push(f0(stp.steps)+" Schritte");
@@ -1845,7 +1959,8 @@ function renderFood(){
   renderNut(E,T);
   // Pop-up der gewählten Mahlzeit
   const open=!$("mealSheet").hidden,sm=sheetMeal||meal;
-  if(open){$("sheetTitle").textContent=(editing&&editing.kind==="foods"?"Meine Mahlzeit bearbeiten":mealLbl(sm));$("sheetSub").textContent=(isToday?"Heute":fmtD(ds))+(sm==="Snack 2"?" · nach dem Abendessen":sm==="Snack"?" · zwischendurch":"")}
+  if(open){$("sheetTitle").textContent=(editing&&editing.kind==="foods"?"Meine Mahlzeit bearbeiten":mealLbl(sm));$("sheetSub").textContent=PLAN_DS?"Planen für "+fmtD(PLAN_DS)+" – wird nur vorgemerkt":(isToday?"Heute":fmtD(ds))+(sm==="Snack 2"?" · nach dem Abendessen":sm==="Snack"?" · zwischendurch":"")}
+  $("mealSheet").classList.toggle("planmode",!!PLAN_DS);
   $("mealChips").hidden=!(editing&&editing.kind==="meals");
   setHTML($("mealChips"),$("mealChips").hidden?"":h`<span class="label" style="align-self:center">Mahlzeit:</span>${MEALS.map(m=>h`<button class="chip sm ink" data-m="${m}" aria-pressed="${m===meal}">${mealLbl(m)}${m==="Snack 2"?" (abends)":""}</button>`)}`);
   // Wie gestern (nur diese Mahlzeit)
@@ -1881,7 +1996,7 @@ function openMealSheet(m){
 function closeMealSheet(){
   if($("mealSheet").hidden)return;
   if(editing&&(editing.kind==="meals"||editing.kind==="foods"))endEdit(true);
-  $("mealSheet").hidden=true;document.body.classList.remove("sheet-open");sheetMeal=null;closeFdSel();renderFood();
+  $("mealSheet").hidden=true;document.body.classList.remove("sheet-open");sheetMeal=null;if(PLAN_DS){PLAN_DS=null;$("mealSheet").classList.remove("planmode");scheduleRender()}closeFdSel();renderFood();
   if(sheetFocus&&sheetFocus.isConnected)sheetFocus.focus({preventScroll:true});sheetFocus=null;
 }
 $("diary").onclick=e=>{const b=e.target.closest("[data-meal]");if(b)openMealSheet(b.dataset.meal)};
@@ -1935,7 +2050,7 @@ $("copyY").onclick=async e=>{
 };
 const extraNut=m=>{const o={};["sug","fib","sat","salt"].forEach(k=>{if(m[k]!=null&&isFinite(m[k])&&m[k]>=0)o[k]=Math.round(m[k]*10)/10});return o};
 async function addMeal(m){
-  if(!needDb())return null;const ds=$("fDate").value||today();
+  if(!needDb())return null;if(PLAN_DS)return addPlanMeal(m);const ds=$("fDate").value||today();
   const de=checkDate(ds,1);if(de){toast(de);return null}
   const v=checkMeal(m);if(v.err){toast(v.err);return null}
   try{const ref=await db.collection("meals").add(tidy({date:ds,meal:MEALS.includes(m.meal)?m.meal:meal,name:clean(m.name,TXT.name),kcal:Math.round(m.kcal),p:Math.round(m.p||0),c:Math.round(m.c||0),f:Math.round(m.f||0),...(m.est?{est:m.est}:{}),...(m.food?{food:m.food}:{}),...(m.items?{items:m.items}:{}),...extraNut(m),createdAt:Date.now()}));
@@ -2990,7 +3105,7 @@ function peRender(){
   if(!pe.plan)pe.plan=JSON.parse(JSON.stringify(TEMPLATES));
   if(!pe.plan[pe.day])pe.day="push";const t=pe.plan[pe.day],eqOn=CFG.gymEquip||Object.keys(EX_EQUIP);
   setHTML($("peBody"),h`<div class="ex-last">Stell deine Gym-Tage so zusammen, wie dein Studio ausgestattet ist. Start-kg füllt das Gewicht vor, solange es für die Übung noch keine Werte gibt. Bereits gespeicherte Einheiten bleiben unverändert.</div>
-    <div class="chips" id="peDays">${GYM_ORDER.map(k=>h`<button class="chip sm ink" data-pd="${k}" aria-pressed="${k===pe.day}">${pe.plan[k].name}</button>`)}</div>
+    <div class="chips" id="peDays">${GYM_ALL.map(k=>h`<button class="chip sm ink" data-pd="${k}" aria-pressed="${k===pe.day}">${pe.plan[k].name}</button>`)}</div>
     <label class="f">Name des Tages<input id="peName" maxlength="40" value="${t.name}"></label>
     <div class="pelist" id="peRows">${t.ex.map(([n,sets,tg,kg],i)=>h`<div class="perow"><span class="n">${n}<small>${exMeta(n)}</small></span>
       <label class="pq"><input data-pi="${i}" data-pf="n" inputmode="numeric" maxlength="2" value="${sets}" aria-label="Sätze ${n}"><span>Sätze</span></label>
@@ -3055,7 +3170,7 @@ $("peBody").addEventListener("click",e=>{
   if(b.id==="peUndo"){pe.plan=null;pe.dirty=false;peRender();return}
   if(b.id==="peSave"){if(!needDb())return;
     for(const k of GYM_ORDER){const d=pe.plan[k];if(!d.ex.length){toast("„"+d.name+"“ braucht mindestens eine Übung");pe.day=k;peRender();return}if(!d.name.trim())d.name=DEFAULT_TEMPLATES[k].name}
-    const plan=Object.fromEntries(GYM_ORDER.map(k=>[k,{name:pe.plan[k].name,ex:pe.plan[k].ex.map(([n,s,t2,kg])=>kg!=null?[n,s,t2,kg]:[n,s,t2])}]));
+    const plan=Object.fromEntries(GYM_ALL.map(k=>[k,{name:pe.plan[k].name,ex:pe.plan[k].ex.map(([n,s,t2,kg])=>kg!=null?[n,s,t2,kg]:[n,s,t2])}]));
     withBusy(b,async()=>{pe.dirty=false;await saveSettings({gymPlan:plan});
       if(!(editing&&editing.kind==="sessions")&&!draft.some(x=>x.vals.some(v=>(v.kg&&!v.pre)||v.r)))buildDraft();toast("Trainingsplan gespeichert")});return}
 });
@@ -3251,26 +3366,18 @@ function renderToday(){
   const t=today(),d=planDay(t),T=targetFor(t),E=eatenOn(t),dl=dailyOn(t),hour=new Date().getHours();
   const wkTxt=weekLabel(d.I)+(d.P&&d.P.deload?" · Entlastung":"");
   const parts=[h`<div class="row sb"><h2>${ico("cal")}Heute · ${fmtD(t)}</h2><span class="label">${wkTxt}</span></div>`];
+  parts.push(pickBox(t));
   if(lowRecovery(dl))parts.push(h`<div class="notice warn"><b>Erholung niedrig</b> (Schlaf/Energie Ø ${fmtNum(avg([dl.sleep,dl.energy].map(N).filter(x=>x>0)),1)}): Qualität heute auf einen normalen Lauf reduzieren oder Wiederholungen streichen.</div>`);
   if(d.wd===okWd()&&!S.checkins.some(x=>x.id===monday(t)))parts.push(h`<div class="notice"><b>Heute ist Foto-Tag:</b> nach dem Training „${TEMPLATES.ok.name}“ ein Foto von vorne fürs Formupdate machen.<div><button class="btn ghost" data-go="check">Zum Formfoto</button></div></div>`);
   let go="food",goTxt="Essen eintragen";
-  if(d.run){const R=runSession(t),done=S.runs.filter(r=>r.date===t);go="run";goTxt="Lauf eintragen";
-    parts.push(h`<div><span class="label">Lauf · ${typeLbl(R.type)}${d.added.run?" · hinzugefügt":""}</span><div style="font-weight:600;margin-top:2px">${R.title} · ca. ${fmtKm(R.km)} km</div></div>
-      <details class="tree" data-tree="run"${raw(todayOpen.has("run")?" open":"")}><summary>Ablauf anzeigen <span>Warm-up · Hauptteil · Cool-down</span></summary>
-      <dl class="steps">${R.steps.map(([a,b])=>h`<dt>${a}</dt><dd>${b}</dd>`)}</dl></details>
-      ${done.length?"":db?h`<div class="addtr"><span class="label">Länge heute</span><div class="chips"><input id="rkIn" class="km-in" inputmode="decimal" aria-label="Kilometer heute" value="${fmtKm(R.km).replace(".",",")}"> km <button class="chip sm" data-rk="set">Übernehmen</button>${d.run.adjusted?h`<button class="chip sm" data-rk="reset">Wie geplant</button>`:""}</div></div>`:""}
-      ${done.length?h`<div class="ex-last" style="color:var(--good)">✓ eingetragen: ${done.map(r=>typeLbl(r.type)+" "+fmtKm(r.km)+" km in "+fmtTime(r.sec)).join(", ")}</div>`:db?(d.added.run?h`<button class="chip sm" data-unadd="run">Lauf wieder entfernen</button>`:h`<button class="chip sm" data-skip="run">Lauf heute aussetzen</button>`):""}`)}
-  if(d.skip.run)parts.push(h`<div class="skipped"><span><span class="label">Lauf · ausgesetzt</span><b>${d.skip.run.text.split(" · ")[0]}</b></span>${db?h`<button class="chip sm" data-unskip="run">Doch laufen</button>`:""}</div>`);
-  if(d.gym){const tp=TEMPLATES[d.gym],done=S.sessions.some(s=>s.date===t);go="gym";goTxt="Gym eintragen";
-    parts.push(h`<div><span class="label">Gym${d.added.gym?" · hinzugefügt":""}</span><div style="font-weight:600;margin-top:2px">${tp.name}${done?" · ✓ eingetragen":""}</div></div>
-      <details class="tree" data-tree="gym"${raw(todayOpen.has("gym")?" open":"")}><summary>Übungen anzeigen <span>${tp.ex.length} Übungen</span></summary>
+  if(d.run){const R=runSession(t);go="run";goTxt="Lauf eintragen";
+    parts.push(h`<details class="tree" data-tree="run"${raw(todayOpen.has("run")?" open":"")}><summary>Lauf · ${R.title} <span>Warm-up · Hauptteil · Cool-down</span></summary>
+      <dl class="steps">${R.steps.map(([a,b])=>h`<dt>${a}</dt><dd>${b}</dd>`)}</dl></details>`)}
+  if(d.gym){const tp=TEMPLATES[d.gym];if(!d.run||!S.runs.some(r=>r.date===t)){go="gym";goTxt="Gym eintragen"}
+    parts.push(h`<details class="tree" data-tree="gym"${raw(todayOpen.has("gym")?" open":"")}><summary>${tp.name} · Übungen <span>${tp.ex.length} Übungen</span></summary>
       <ul class="tlist">${tp.ex.map(([n,c,tg])=>{const last=lastSets(n,t,null),pr=progression(n,tg,last);
-        return h`<li><span>${n} <span class="ex-target" style="font-size:14px">${c} × ${tg}</span></span><span class="ex-last">${last?"zuletzt "+last.map(s=>fmtKg(s.kg)+"×"+N(s.reps)).join(", "):"noch keine Werte"}${pr?h` · <b class="ex-prog${pr.up?" up":""}">${pr.text}</b>`:""}</span></li>`})}</ul></details>
-      ${!done&&db?(d.added.gym?h`<button class="chip sm" data-unadd="gym">Gym wieder entfernen</button>`:h`<button class="chip sm" data-skip="gym">Gym heute aussetzen</button>`):""}`)}
-  if(d.skip.gym)parts.push(h`<div class="skipped"><span><span class="label">Gym · ausgesetzt</span><b>${TEMPLATES[d.skip.gym].name}</b></span>${db?h`<button class="chip sm" data-unskip="gym">Doch trainieren</button>`:""}</div>`);
-  {const canG=db&&!d.gym&&!d.skip.gym&&!S.sessions.some(s=>s.date===t),canR=db&&!d.run&&!d.skip.run&&!S.runs.some(r=>r.date===t),nx=pickGymDay();
-   if(canG||canR)parts.push(h`<div class="addtr"><span class="label">Training hinzufügen</span><div class="chips">${canG?h`<button class="chip sm" data-add-gym="${nx}">+ Gym · ${TEMPLATES[nx].name}</button>`:""}${canR?h`<input id="addKm" class="km-in" inputmode="decimal" aria-label="Kilometer" placeholder="${ADD_RUN.easy}"> km <button class="chip sm" data-add-run="easy">+ Lauf</button><button class="chip sm" data-add-run="long">+ Long Run</button>`:""}</div></div>`)}
-  if(!d.run&&!d.gym)parts.push(h`<div class="ex-last">${d.skip.gym||d.skip.run?"Heute Pause – Kalorienziel ist auf Ruhetag angepasst ("+f0(T.total)+" kcal).":"Ruhetag – locker gehen, Mobility, gut essen und schlafen."}</div>`);
+        return h`<li><span>${n} <span class="ex-target" style="font-size:14px">${c} × ${tg}</span></span><span class="ex-last">${last?"zuletzt "+last.map(s=>fmtKg(s.kg)+"×"+N(s.reps)).join(", "):"noch keine Werte"}${pr?h` · <b class="ex-prog${pr.up?" up":""}">${pr.text}</b>`:""}</span></li>`})}</ul></details>`)}
+  if(!d.run&&!d.gym)parts.push(h`<div class="ex-last">Ruhetag – locker gehen, Mobility, gut essen und schlafen. Kalorienziel ${f0(T.total)} kcal.</div>`);
   const rest=T.total-E.k,G=goalDist();
   const rg=(p,val,unit,lab,sub,over)=>h`<div class="rg"><div class="rw">${ringSvg(p,{over})}<div class="rv"><span>${val}<small>${unit}</small></span></div></div><div class="rl">${lab}<br><b>${sub}</b></div></div>`;
   parts.push(h`<div class="rings">
@@ -3280,13 +3387,170 @@ function renderToday(){
   if(hour>=18&&E.p<PROTEIN_EVENING)parts.push(h`<div class="notice warn">Protein erst ${f0(E.p)} g – bis ${PROTEIN_EVENING} g fehlen ${f0(PROTEIN_EVENING-E.p)} g.</div>`);
   parts.push(h`<button class="btn wide${go==="gym"?" gym":""}" data-go="${go}">Jetzt eintragen · ${goTxt.replace(" eintragen","")}</button>`);
   setHTML($("todayCard"),parts);
-  $("todayCard").querySelectorAll("[data-skip],[data-unskip]").forEach(b=>b.onclick=()=>withBusy(b,()=>setSkip(b.dataset.skip||b.dataset.unskip,!!b.dataset.skip)));
-  $("todayCard").querySelectorAll("[data-rk]").forEach(b=>b.onclick=()=>withBusy(b,()=>{
-    if(b.dataset.rk==="reset"){const d=planDay(today());return d.added.run?setAdd({unadd:"run"}):setRunKm(null)}
-    const v=num($("rkIn").value);if(v==null){toast("Kilometer eintragen");return}return setRunKm(v)}));
-  $("todayCard").querySelectorAll("[data-add-gym],[data-add-run],[data-unadd]").forEach(b=>b.onclick=()=>withBusy(b,()=>setAdd(b.dataset)));
   $("todayCard").querySelectorAll("details.tree").forEach(d=>d.ontoggle=()=>{d.open?todayOpen.add(d.dataset.tree):todayOpen.delete(d.dataset.tree)});
 }
+
+/* =====================================================================
+   v70 Auswahl des Trainings für einen Tag (daily.pick) – Startseite und Wochenplanung
+   ===================================================================== */
+const PK_KM_DEF=5;
+/** nächste Gym-Einheit, wenn der Tag keine hat: Plan des Tages, sonst Rotation nach der letzten Einheit */
+function nextGymFor(ds){const pg=planDay(ds,true).gym;if(pg)return pg;
+  const last=[...S.sessions].filter(x=>x.date<ds).sort(byDate).pop();
+  return last&&GYM_ORDER.includes(last.day)?GYM_ORDER[(GYM_ORDER.indexOf(last.day)+1)%3]:"push"}
+function plannedKm(ds){const p=planDay(ds,true);return p.run?p.run.km:null}
+function pickKcalTxt(km){const kg=kgNow();if(!(kg>0))return {k:"–",sub:"Gewicht fehlt – im Gewicht-Tab eintragen"};
+  const pc=runPaceNow(),sec=km*pc;return {k:"≈ "+f0(runKcalNet(km,sec,kg))+" kcal",sub:"ca. "+f0(sec/60)+" Min. bei "+pace(pc)+" min/km · netto"}}
+function pickBox(ds){
+  const d=planDay(ds),gymDone=S.sessions.filter(s=>s.date===ds),runDone=S.runs.filter(r=>r.date===ds);
+  const runOn=!!d.run||runDone.length>0,gymOn=!!d.gym||gymDone.length>0;
+  const km=d.run?d.run.km:PK_KM_DEF,K=pickKcalTxt(km);
+  const gk=gymDone.length?gymDone[gymDone.length-1].day:d.gym;
+  return h`<div class="pick" data-pick="${ds}">
+    <div class="seg2" role="group" aria-label="Training ${ds===today()?"heute":fmtD(ds)}">
+      <button class="segb" data-pk-type="run" aria-pressed="${runOn}">${raw(icoSvg("run"))}Joggen${runDone.length?h` <span class="ck">✓</span>`:""}</button>
+      <button class="segb" data-pk-type="gym" aria-pressed="${gymOn}">${raw(icoSvg("dumbbell"))}Gym${gymDone.length?h` <span class="ck">✓</span>`:""}</button>
+    </div>
+    ${runDone.length?h`<div class="pkdone">✓ Lauf eingetragen: ${runDone.map(r=>fmtKm(r.km)+" km").join(" + ")}</div>`
+      :d.run?h`<div class="pkrow"><div class="stepper"><button class="stp" data-pk-km="-0.5" aria-label="0,5 km weniger">−</button><input class="km-in" data-pk-kmin inputmode="decimal" aria-label="Kilometer" value="${fmtKm(km)}"><span>km</span><button class="stp" data-pk-km="0.5" aria-label="0,5 km mehr">+</button></div>
+        <div class="pkk"><b data-pk-kcal>${K.k}</b><span class="label" data-pk-sub>${K.sub}</span></div></div>`:""}
+    ${gymOn?h`<div class="chips pkg" role="group" aria-label="Gym-Einheit">${GYM_ALL.map(k=>h`<button class="chip sm" data-pk-gym="${k}" aria-pressed="${gk===k}"${raw(gymDone.length?" disabled":"")}>${GYM_LBL[k]}${gymDone.some(s=>s.day===k)?" ✓":""}</button>`)}</div>
+      <div class="label">${gymDone.length?"✓ eingetragen: "+gymDone.map(s=>(TEMPLATES[s.day]||{name:"Gym"}).name).join(", "):TEMPLATES[gk].name+" · "+GYM_KCAL+" kcal (Pauschale)"}</div>`:""}
+    ${!runOn&&!gymOn?h`<div class="label">Ruhetag – tippe auf Joggen oder Gym, um ein Training zu planen.</div>`:""}
+  </div>`;
+}
+/** Auswahl speichern: alte Felder (skip/add/runKm) des Typs werden dabei ersetzt */
+async function savePick(ds,patch,msg){
+  if(!needDb())return;const cur=dailyOn(ds)||{},before=targetFor(ds).total,pk={...(cur.pick&&typeof cur.pick==="object"?cur.pick:{}),...patch};
+  const clear={};if("gym" in patch)Object.assign(clear,{skipGym:undefined,addGym:undefined});if("run" in patch)Object.assign(clear,{skipRun:undefined,addRun:undefined,addRunKind:undefined,runKm:undefined});
+  const prev={pick:cur.pick,skipGym:cur.skipGym,addGym:cur.addGym,skipRun:cur.skipRun,addRun:cur.addRun,addRunKind:cur.addRunKind,runKm:cur.runKm};
+  await saveDaily({...clear,pick:pk},ds);invalidate();
+  if(msg){const after=targetFor(ds).total;toast(msg+" · Kalorienziel "+f0(after)+" kcal ("+(after-before>0?"+":"")+f0(after-before)+")",()=>saveDaily(prev,ds),6000)}
+  scheduleRender();
+}
+function pkKmVal(box){const v=num(box.querySelector("[data-pk-kmin]").value);return v==null?null:Math.round(v*10)/10}
+document.addEventListener("click",e=>{
+  const box=e.target.closest("[data-pick]");if(!box)return;const ds=box.dataset.pick,d=planDay(ds);
+  const ty=e.target.closest("[data-pk-type]"),gy=e.target.closest("[data-pk-gym]"),st=e.target.closest("[data-pk-km]");
+  if(ty){if(ty.dataset.pkType==="run"){if(S.runs.some(r=>r.date===ds))return toast("Lauf ist schon eingetragen");
+      savePick(ds,{run:d.run?0:(plannedKm(ds)||PK_KM_DEF)},d.run?"Kein Lauf":"Joggen geplant")}
+    else{if(S.sessions.some(s=>s.date===ds))return toast("Gym ist schon eingetragen");
+      savePick(ds,{gym:d.gym?null:nextGymFor(ds)},d.gym?"Kein Gym":"Gym geplant")}return}
+  if(gy&&!gy.disabled){if(gy.dataset.pkGym!==d.gym)savePick(ds,{gym:gy.dataset.pkGym},GYM_LBL[gy.dataset.pkGym]+" gewählt");return}
+  if(st){const cur=pkKmVal(box)??(d.run?d.run.km:PK_KM_DEF),v=Math.max(.5,Math.min(60,Math.round((cur+Number(st.dataset.pkKm))*2)/2));
+    box.querySelector("[data-pk-kmin]").value=fmtKm(v);pkLive(box);savePick(ds,{run:v})}
+});
+function pkLive(box){const v=pkKmVal(box),el=box.querySelector("[data-pk-kcal]"),sb=box.querySelector("[data-pk-sub]");if(!el)return;
+  if(v==null||!inR(v,LIMITS.runKm)){el.textContent="–";sb.textContent="0,5 bis 60 km";return}const K=pickKcalTxt(v);el.textContent=K.k;sb.textContent=K.sub}
+document.addEventListener("input",e=>{const ip=e.target.closest("[data-pk-kmin]");if(ip)pkLive(ip.closest("[data-pick]"))});
+document.addEventListener("change",e=>{const ip=e.target.closest("[data-pk-kmin]");if(!ip)return;const box=ip.closest("[data-pick]"),v=pkKmVal(box);
+  if(v==null||!inR(v,LIMITS.runKm)){ip.setAttribute("aria-invalid","true");toast("Distanz muss zwischen 0,5 und 60 km liegen");return}
+  ip.removeAttribute("aria-invalid");savePick(box.dataset.pick,{run:v})});
+
+/* =====================================================================
+   v70 Kreise auf der Startseite (Training prüfen, Coach-Check, Plan-Assistent, Plan dieser Woche, Trainingswoche)
+   ===================================================================== */
+let orbOpen=null;
+function setOrb(k){orbOpen=orbOpen===k?null:k;
+  document.querySelectorAll("[data-orb]").forEach(b=>b.setAttribute("aria-expanded",String(b.dataset.orb===orbOpen)));
+  document.querySelectorAll(".orbp").forEach(pn=>{const on=pn.id==="orbP-"+orbOpen;pn.classList.toggle("open",on);pn.setAttribute("aria-hidden",String(!on));pn.inert=!on});
+  if(orbOpen==="wp")renderWeekPlan();
+  if(orbOpen){const pn=$("orbP-"+orbOpen);setTimeout(()=>{const r=pn.getBoundingClientRect();if(r.top>window.innerHeight*.6)pn.scrollIntoView({behavior:"smooth",block:"nearest"})},360)}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-orb]");if(b){setOrb(b.dataset.orb);return}
+  const x=e.target.closest("[data-orbx]");if(x){const k=x.dataset.orbx;setOrb(k);const ob=document.querySelector(`[data-orb="${k}"]`);if(ob)ob.focus({preventScroll:true})}});
+function weekUnits(t=today()){const m=monday(t);let plan=0,done=0;
+  for(let i=0;i<7;i++){const ds=addDays(m,i),d=planDay(ds),g=S.sessions.some(s=>s.date===ds),r=S.runs.some(x=>x.date===ds);
+    plan+=(d.gym||g?1:0)+(d.run||r?1:0);done+=(g?1:0)+(r?1:0)}return {plan,done}}
+function renderOrbs(){
+  const W=weekUnits(),set=(k,v)=>{const el=$("orbV-"+k);if(el)el.textContent=v};
+  set("tr",W.plan?"Woche: "+W.done+" von "+W.plan+" Einheiten":"noch kein Training geplant");
+  set("coach",$("coachState").textContent||"starten");
+  const r=S.settingsRaw;set("pa",r.planBy==="assistent"&&isDate(r.planAt)?"Plan vom "+fmtDM(r.planAt):"Plan erstellen");
+  const B=dayBudget(today());set("wp",B.total?(B.free>=0?"Heute frei: "+f0(B.free)+" kcal":f0(-B.free)+" kcal drüber"):"Tage planen");
+  const sc=schedOf(planInfo(today()).mode);set("wk",(sc.gym.length||sc.run.length)?sc.gym.length+"× Gym · "+sc.run.length+"× Lauf":"Tage festlegen");
+  const ae=document.activeElement;if(orbOpen==="wp"&&!($("wpBody").contains(ae)&&ae.tagName==="INPUT"))renderWeekPlan();
+}
+
+/* =====================================================================
+   v70 Tagesplanung im Voraus: daily.planMeals = [{name,kcal,p,c,f,meal}], settings.dayTemplates = [{name,pick,planMeals}]
+   ===================================================================== */
+const PLAN_MAX=30;let wp={off:0,sel:null,fold:false},PLAN_DS=null;
+document.addEventListener("toggle",e=>{if(e.target.matches&&e.target.matches("[data-wpfold]"))wp.fold=e.target.open},true);
+const planMealsOf=ds=>{const d=dailyOn(ds);return d&&Array.isArray(d.planMeals)?d.planMeals.filter(m=>m&&N(m.kcal)>0):[]};
+/** Bilanz: Ziel (Grundumsatz × Alltag ± Ziel + Training) − gegessen − geplant = verfügbar */
+function dayBudget(ds){const T=targetFor(ds),eaten=eatenOn(ds).k,planned=sum(planMealsOf(ds).map(m=>N(m.kcal))),work=T.gymK+T.runK+T.otherK+T.stepK;
+  return {T,total:T.total,work,base:T.total-work,eaten,planned,free:T.total-eaten-planned}}
+function wpWorkTxt(ds){const d=planDay(ds),a=[],g=S.sessions.filter(s=>s.date===ds),r=S.runs.filter(x=>x.date===ds);
+  if(r.length)a.push("✓ Lauf "+fmtKm(sum(r.map(x=>N(x.km))))+" km");else if(d.run)a.push("Lauf "+fmtKm(d.run.km)+" km");
+  if(g.length)a.push("✓ "+(GYM_LBL[g[0].day]||"Gym"));else if(d.gym)a.push(GYM_LBL[d.gym]||TEMPLATES[d.gym].name);
+  const pm=planMealsOf(ds).length;if(pm)a.push(pm+(pm===1?" Mahlzeit":" Mahlzeiten"));return a.length?a.join(" · "):"Ruhetag"}
+function renderWeekPlan(){
+  if(!$("wpBody"))return;const t=today(),m=addDays(monday(t),wp.off*7),days=[...Array(7)].map((_,i)=>addDays(m,i));
+  if(wp.sel&&!days.includes(wp.sel))wp.sel=null;
+  const row=ds=>{const B=dayBudget(ds),over=B.total>0&&B.free<0,pct=B.total?Math.min(100,(B.eaten+B.planned)/B.total*100):0;
+    return h`<button class="wpd${ds===t?" today":""}" data-wpd="${ds}" aria-pressed="${wp.sel===ds}"><span class="wpn">${WD[(parseD(ds).getDay()+6)%7]} ${fmtDM(ds)}</span><span class="wpw">${wpWorkTxt(ds)}</span><span class="wpk${over?" over":""}">${B.total?(over?f0(-B.free)+" drüber":f0(B.free)+" frei"):"–"}</span><span class="wpbar${over?" over":""}"><i style="width:${pct}%"></i></span></button>`};
+  setHTML($("wpBody"),h`<div class="wpnav"><button class="chip sm" data-wpw="-1"${raw(wp.off<=0?" disabled":"")} aria-label="Vorige Woche">‹</button><span class="label">${wp.off===0?"Diese Woche":wp.off===1?"Nächste Woche":"in "+wp.off+" Wochen"} · ${fmtDM(m)}–${fmtDM(addDays(m,6))}</span><button class="chip sm" data-wpw="1"${raw(wp.off>=8?" disabled":"")} aria-label="Nächste Woche">›</button></div>
+    <div class="wpdays">${days.map(row)}</div>
+    ${wp.sel?wpEditor(wp.sel):h`<div class="ex-last">Tippe auf einen Tag, um Training und Mahlzeiten im Voraus zu planen.</div>`}`);
+}
+function wpEditor(ds){
+  const B=dayBudget(ds),PM=planMealsOf(ds),over=B.total>0&&B.free<0,pct=B.total?Math.min(100,(B.eaten+B.planned)/B.total*100):0,canEat=ds<=addDays(today(),1)&&ds>=addDays(today(),-7);
+  const tpl=Array.isArray(S.settingsRaw.dayTemplates)?S.settingsRaw.dayTemplates:[];
+  return h`<div class="wped" id="wpEd">
+    <div class="row sb"><b>${fmtD(ds)}</b><button class="chip sm" data-wp-close>Fertig</button></div>
+    ${pickBox(ds)}
+    <div><span class="label">Mahlzeiten geplant</span>
+      ${PM.length?h`<ul class="wpml">${PM.map((x,i)=>h`<li><span>${x.meal?mealLbl(x.meal)+": ":""}${x.name}</span><span>${f0(x.kcal)} kcal <button class="wpx" data-wp-del="${i}" aria-label="${x.name} entfernen">✕</button></span></li>`)}</ul>`:h`<div class="ex-last">Noch nichts geplant.</div>`}
+      ${B.eaten?h`<div class="ex-last">Schon gegessen: ${f0(B.eaten)} kcal</div>`:""}</div>
+    <div class="row" style="flex-wrap:wrap"><button class="btn ghost" data-wp-add style="flex:1">+ Mahlzeit planen</button>${canEat&&PM.length?h`<button class="btn ghost" data-wp-eat style="flex:1">Als gegessen eintragen</button>`:""}</div>
+    ${B.total?h`<dl class="wpbal"><dt>Ziel ohne Training</dt><dd>${f0(B.base)} kcal</dd><dt>+ Training und Schritte</dt><dd>${f0(B.work)} kcal</dd><dt>− geplant</dt><dd>${f0(B.planned)} kcal</dd>${B.eaten?h`<dt>− gegessen</dt><dd>${f0(B.eaten)} kcal</dd>`:""}</dl>
+      <div class="row sb"><span>Verfügbar</span><span class="wpfree${over?" over":""}" data-wp-free>${f0(B.free)} kcal</span></div>
+      <div class="wpbar${over?" over":""}" style="display:block"><i style="width:${pct}%"></i></div>
+      ${over?h`<div class="notice warn">Über dem Budget: ${f0(-B.free)} kcal zu viel geplant.</div>`:""}`
+      :h`<div class="notice">Für die Bilanz fehlen Profil oder Gewicht (Einstellungen und Gewicht-Tab).</div>`}
+    <details class="tree fold" data-wpfold${raw(wp.fold?" open":"")}><summary>Kopieren und Vorlagen</summary><div class="foldin" style="display:flex;flex-direction:column;gap:10px">
+      <div class="row" style="align-items:flex-end;flex-wrap:wrap"><label class="f" style="flex:1">Tag kopieren nach<input type="date" id="wpCopyTo" min="${today()}" value="${addDays(ds,7)}"></label><button class="btn ghost" data-wp-copy>Kopieren</button></div>
+      <div class="row" style="align-items:flex-end;flex-wrap:wrap"><label class="f" style="flex:1">Als Vorlage speichern<input id="wpTplName" maxlength="30" placeholder="z. B. Lauftag"></label><button class="btn ghost" data-wp-tsave>Speichern</button></div>
+      ${tpl.length?h`<div><span class="label">Vorlage anwenden</span><div class="chips">${tpl.map((x,i)=>h`<span class="chips" style="gap:2px"><button class="chip sm" data-wp-tuse="${i}">${x.name}</button><button class="wpx" data-wp-tdel="${i}" aria-label="Vorlage ${x.name} löschen">✕</button></span>`)}</div></div>`:""}
+    </div></details>
+  </div>`;
+}
+async function setPlanMeals(ds,list,msg){const cur=dailyOn(ds)||{},prev=cur.planMeals;await saveDaily({planMeals:list.length?list:undefined},ds);invalidate();
+  if(msg)toast(msg,()=>saveDaily({planMeals:prev},ds));scheduleRender()}
+const cleanPM=m=>({name:clean(m.name,TXT.name)||"Mahlzeit",kcal:Math.round(N(m.kcal)),p:Math.round(N(m.p)),c:Math.round(N(m.c)),f:Math.round(N(m.f)),...(MEALS.includes(m.meal)?{meal:m.meal}:{})});
+document.addEventListener("click",async e=>{
+  const card=e.target.closest("#wpCard");if(!card)return;
+  const w=e.target.closest("[data-wpw]");if(w){wp.off=Math.max(0,Math.min(8,wp.off+Number(w.dataset.wpw)));wp.sel=null;renderWeekPlan();return}
+  const dd=e.target.closest("[data-wpd]");if(dd){wp.sel=wp.sel===dd.dataset.wpd?null:dd.dataset.wpd;renderWeekPlan();return}
+  if(e.target.closest("[data-wp-close]")){wp.sel=null;renderWeekPlan();return}
+  const ds=wp.sel;if(!ds||!needDb())return;
+  if(e.target.closest("[data-wp-add]")){PLAN_DS=ds;openMealSheet();return}
+  const del=e.target.closest("[data-wp-del]");if(del){const L=planMealsOf(ds),x=L[+del.dataset.wpDel];L.splice(+del.dataset.wpDel,1);return setPlanMeals(ds,L,(x?x.name:"Mahlzeit")+" entfernt")}
+  const eat=e.target.closest("[data-wp-eat]");if(eat)return withBusy(eat,async()=>{const L=planMealsOf(ds),refs=[];
+    for(const x of L)refs.push(await db.collection("meals").add(tidy({date:ds,meal:MEALS.includes(x.meal)?x.meal:"Sonstiges",name:clean(x.name,TXT.name),kcal:Math.round(N(x.kcal)),p:Math.round(N(x.p)),c:Math.round(N(x.c)),f:Math.round(N(x.f)),createdAt:Date.now()})));
+    await saveDaily({planMeals:undefined},ds);invalidate();scheduleRender();
+    toast(L.length+(L.length===1?" Mahlzeit":" Mahlzeiten")+" eingetragen",async()=>{await Promise.all(refs.map(r=>r.delete()));await saveDaily({planMeals:L},ds)})});
+  const cp=e.target.closest("[data-wp-copy]");if(cp){const to=$("wpCopyTo").value;if(!isDate(to)||to<today())return toast("Zieltag ab heute wählen");if(to===ds)return toast("Anderen Tag wählen");
+    const src=dailyOn(ds)||{},dst=dailyOn(to)||{},prev={pick:dst.pick,planMeals:dst.planMeals},d=planDay(ds);
+    const pick={gym:d.gym||null,run:d.run?d.run.km:0};
+    return withBusy(cp,async()=>{await saveDaily({pick,planMeals:planMealsOf(ds).length?planMealsOf(ds):undefined,skipGym:undefined,addGym:undefined,skipRun:undefined,addRun:undefined,addRunKind:undefined,runKm:undefined},to);invalidate();scheduleRender();
+      toast("Kopiert nach "+fmtD(to),()=>saveDaily(prev,to))})}
+  const ts=e.target.closest("[data-wp-tsave]");if(ts){const name=clean($("wpTplName").value,30);if(!name)return toast("Namen für die Vorlage eingeben");
+    const d=planDay(ds),list=(Array.isArray(S.settingsRaw.dayTemplates)?S.settingsRaw.dayTemplates:[]).filter(x=>x.name!==name);
+    list.push({name,pick:{gym:d.gym||null,run:d.run?d.run.km:0},planMeals:planMealsOf(ds).map(cleanPM)});
+    return withBusy(ts,async()=>{await saveSettings({dayTemplates:list.slice(-10)});toast("Vorlage „"+name+"“ gespeichert")})}
+  const tu=e.target.closest("[data-wp-tuse]");if(tu){const x=(S.settingsRaw.dayTemplates||[])[+tu.dataset.wpTuse];if(!x)return;const cur=dailyOn(ds)||{},prev={pick:cur.pick,planMeals:cur.planMeals};
+    const pk=x.pick&&typeof x.pick==="object"?{gym:GYM_ALL.includes(x.pick.gym)?x.pick.gym:null,run:inR(N(x.pick.run),LIMITS.runKm)?N(x.pick.run):0}:{};
+    return withBusy(tu,async()=>{await saveDaily({pick:pk,planMeals:Array.isArray(x.planMeals)&&x.planMeals.length?x.planMeals.map(cleanPM):undefined,skipGym:undefined,addGym:undefined,skipRun:undefined,addRun:undefined,addRunKind:undefined,runKm:undefined},ds);invalidate();scheduleRender();
+      toast("Vorlage „"+x.name+"“ angewendet",()=>saveDaily(prev,ds))})}
+  const td=e.target.closest("[data-wp-tdel]");if(td){const list=(S.settingsRaw.dayTemplates||[]).slice(),x=list.splice(+td.dataset.wpTdel,1)[0];
+    return withBusy(td,async()=>{await saveSettings({dayTemplates:list});toast("Vorlage „"+(x&&x.name)+"“ gelöscht")})}
+});
+/** Mahlzeit vormerken statt eintragen (Essens-Fenster im Planungsmodus) */
+async function addPlanMeal(m){const ds=PLAN_DS,L=planMealsOf(ds);if(L.length>=PLAN_MAX){toast("Höchstens "+PLAN_MAX+" Mahlzeiten pro Tag");return null}
+  const v=checkMeal(m);if(v.err){toast(v.err);return null}
+  const x=cleanPM({...m,meal:MEALS.includes(m.meal)?m.meal:meal});L.push(x);await saveDaily({planMeals:L},ds);invalidate();scheduleRender();
+  toast(String(x.name).slice(0,28)+" → geplant für "+fmtD(ds),()=>saveDaily({planMeals:L.slice(0,-1).length?L.slice(0,-1):undefined},ds));return {delete:async()=>{}}}
 
 /* =====================================================================
    Check-in: wöchentliches Formupdate (Fotos über die assets-Capability)
@@ -3469,7 +3733,7 @@ $("coWeekBody").onclick=e=>{const b=e.target.closest("[data-wk]");if(!b)return;c
    ===================================================================== */
 const TR={win:28,minSes:4,minSpan:14,bigLo:8,bigHi:22,smallLo:4,smallHi:14};
 let trList=[];
-const trDayOf=n=>GYM_ORDER.find(k=>TEMPLATES[k].ex.some(r=>r[0]===n));
+const trDayOf=n=>GYM_ALL.find(k=>TEMPLATES[k].ex.some(r=>r[0]===n));
 function trainCheck(t=today()){
   const from=addDays(t,-TR.win),ses=S.sessions.filter(s=>s.date>from&&s.date<=t);
   const first=S.sessions.length?[...S.sessions].sort(byDate)[0].date:null,span=first?dayNum(t)-dayNum(first):0;
@@ -3521,12 +3785,12 @@ function renderTrain(){
       :h`<div class="notice">Passt – Häufigkeit, Sätze pro Muskelgruppe und Fortschritt sind in Ordnung. Nichts ändern.</div>`}`;
   const html=h`<div class="row sb"><h2>${ico("dumbbell")}Training prüfen</h2><span class="label">letzte 4 Wochen</span></div>${body}`;
   setHTML($("trCard"),html);
-  const show=a.state==="ok"&&a.list.some(x=>x.kind==="warn");$("trDash").hidden=!show;setHTML($("trDash"),show?html:"");
+  setHTML($("trDash"),html);
 }
 async function trApply(i,btn){
   const a=(trList[i]||{}).act;if(!a||!needDb())return;const prev=tidy(S.settingsRaw);let patch;
   if(a.k==="sets"){const gp=tidy(S.settingsRaw.gymPlan||{});
-    GYM_ORDER.forEach(k=>{const t=gp[k];if(!t||!Array.isArray(t.ex)||!t.ex.length)gp[k]={name:TEMPLATES[k].name,ex:TEMPLATES[k].ex.map(r=>r.slice())}});
+    GYM_ALL.forEach(k=>{const t=gp[k];if(!t||!Array.isArray(t.ex)||!t.ex.length)gp[k]={name:TEMPLATES[k].name,ex:TEMPLATES[k].ex.map(r=>r.slice())}});
     const r=gp[a.day]&&gp[a.day].ex.find(x=>x[0]===a.name);if(!r){toast("Übung nicht mehr im Plan");return}
     r[1]=Math.max(1,Math.min(12,N(r[1])+a.delta));patch={gymPlan:gp}}
   else if(a.k==="days")patch={sched:{gym:a.gym,run:schedOf(planInfo(today()).mode).run}};
@@ -3541,7 +3805,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-tra]");if(
 /** Diese Woche (Mo bis heute): letzte eingetragene Einheit je Tag (push/pull/ok) als Planvorlage */
 function weekTemplates(){
   const m=monday(today()),out={};
-  GYM_ORDER.forEach(k=>{const ss=S.sessions.filter(x=>x.day===k&&x.date>=m&&x.date<=today()&&Array.isArray(x.exercises)&&x.exercises.length).sort(byDate);
+  GYM_ALL.forEach(k=>{const ss=S.sessions.filter(x=>x.day===k&&x.date>=m&&x.date<=today()&&Array.isArray(x.exercises)&&x.exercises.length).sort(byDate);
     const ses=ss[ss.length-1];if(!ses)return;
     const old=new Map(TEMPLATES[k].ex.map(r=>[r[0],r]));
     const ex=ses.exercises.filter(e=>e&&e.name&&Array.isArray(e.sets)&&e.sets.length).map(e=>{
@@ -3559,7 +3823,7 @@ function renderWkTake(){
 $("wkTake").onclick=()=>withBusy($("wkTake"),async()=>{
   const W=weekTemplates(),ks=Object.keys(W);if(!ks.length||!needDb())return;
   const prev=tidy(S.settingsRaw),gp=tidy(S.settingsRaw.gymPlan||{});
-  GYM_ORDER.forEach(k=>{const t=gp[k];if(!t||!Array.isArray(t.ex)||!t.ex.length)gp[k]={name:TEMPLATES[k].name,ex:TEMPLATES[k].ex.map(r=>r.slice())}});
+  GYM_ALL.forEach(k=>{const t=gp[k];if(!t||!Array.isArray(t.ex)||!t.ex.length)gp[k]={name:TEMPLATES[k].name,ex:TEMPLATES[k].ex.map(r=>r.slice())}});
   ks.forEach(k=>{gp[k]={...gp[k],ex:W[k].ex}});
   const next={...S.settingsRaw,start:S.start,gymPlan:gp};
   await db.doc("settings/main").set(tidy(next));applySettings(next);invalidate();scheduleRender();
@@ -3586,7 +3850,7 @@ function applySettings(d){
   const ge=S.settingsRaw.gymEquip;c.gymEquip=Array.isArray(ge)?ge.filter(k=>EX_EQUIP[k]):null;
   TEMPLATES=JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));const gp=S.settingsRaw.gymPlan;
   const OLD_NAMES={"Push + Beine":"Push","Pull + Beine":"Pull"},nm=x=>{const v=clean(x,40);return OLD_NAMES[v]||v};
-  if(gp&&typeof gp==="object")GYM_ORDER.forEach(k=>{const t=gp[k];if(t&&!Array.isArray(t.ex)&&nm(t.name)){TEMPLATES[k].name=nm(t.name);return}if(!t||!Array.isArray(t.ex))return;
+  if(gp&&typeof gp==="object")GYM_ALL.forEach(k=>{const t=gp[k];if(t&&!Array.isArray(t.ex)&&nm(t.name)){TEMPLATES[k].name=nm(t.name);return}if(!t||!Array.isArray(t.ex))return;
     const ex=t.ex.slice(0,20).filter(e=>Array.isArray(e)&&typeof e[0]==="string"&&e[0].trim()).map(e=>{const r=[clean(e[0],TXT.name),Math.max(1,Math.min(12,Math.round(N(e[1]))||3)),clean(e[2],40)],kg=N(e[3]);if(e[3]!=null&&kg>=0&&kg<=400)r.push(Math.round(kg*4)/4);return r});
     if(ex.length)TEMPLATES[k]={name:nm(t.name)||DEFAULT_TEMPLATES[k].name,ex}});
   const sc=S.settingsRaw.sched,days=a=>Array.isArray(a)?[...new Set(a.map(Number).filter(x=>Number.isInteger(x)&&x>=0&&x<=6))].sort((a,b)=>a-b):null;
@@ -3603,7 +3867,7 @@ async function saveSettings(patch){
 }
 /** Export: auch die Werte, die nur als Standard galten (Plan, Trainingswoche, Profil), damit sie in einem neuen Konto ankommen */
 function exportSettings(){const r=S.settingsRaw,gp={...(r.gymPlan||{})};
-  GYM_ORDER.forEach(k=>{const t=gp[k];if(!t||!Array.isArray(t.ex)||!t.ex.length)gp[k]={name:TEMPLATES[k].name,ex:TEMPLATES[k].ex}});
+  GYM_ALL.forEach(k=>{const t=gp[k];if(!t||!Array.isArray(t.ex)||!t.ex.length)gp[k]={name:TEMPLATES[k].name,ex:TEMPLATES[k].ex}});
   const base={sched:schedOf(planInfo(today()).mode)};
   if(CFG.height>0)base.height=CFG.height;if(CFG.age>0)base.age=CFG.age;if(CFG.protein>0)base.protein=CFG.protein;if(CFG.goalKg>0)base.goalKg=CFG.goalKg;
   return {...base,...r,gymPlan:gp}}
@@ -3682,7 +3946,7 @@ function render(){
   invalidate();applyPaces();const t=today(),thisMon=monday(t),I=planInfo(t),P=I.P,wk=I.wk;
   setHTML($("weekBadge"),I.mode==="hm"?h`HM-Woche <b>${wk}</b> / 12`:h`Aufbau <b>${wk}</b> / 4`);
   document.querySelectorAll(".paceHint").forEach(x=>x.textContent=paceHintTxt());
-  renderToday();renderCoachCheck();renderPaCard();renderWarmup();renderRecovery();renderSteps();renderSettings();renderCheck();renderAdapt();renderTrain();renderWkTake();renderCoach();if(!$("wkSet").contains(document.activeElement)||document.activeElement.tagName!=="INPUT")renderWkSet();
+  renderToday();renderCoachCheck();renderPaCard();renderWarmup();renderRecovery();renderSteps();renderSettings();renderCheck();renderAdapt();renderTrain();renderWkTake();renderOrbs();renderCoach();if(!$("wkSet").contains(document.activeElement)||document.activeElement.tagName!=="INPUT")renderWkSet();
   // Kacheln
   const wkRuns=S.runs.filter(r=>monday(r.date)===thisMon),km=sum(wkRuns.map(r=>N(r.km))),PW=weekPlan(thisMon);
   setHTML($("tKm"),h`${fmtNum(km,1)}<small>km</small>`);
@@ -4422,7 +4686,7 @@ function normCoach(j){
   return {summary,wins:arr(j.wins,5,200),issues:arr(j.issues,5,200),actions};
 }
 function renderCoachCheck(){
-  const cc=$("coachCard");if(!cc.dataset.fold){cc.dataset.fold=1;if(ls.get("coachZu"))cc.open=false;cc.addEventListener("toggle",()=>ls.set("coachZu",cc.open?0:1))}
+  const cc=$("coachCard");cc.open=true;
   const last=COACH[COACH.length-1]||null,t=today(),age=last?dayNum(t)-dayNum(last.date):null,due=!last||age>=7;
   $("coachState").textContent=coachBusy?"läuft …":last?(age===0?"heute":"vor "+age+(age===1?" Tag":" Tagen"))+(due?" · fällig":""):"noch nie";
   const canRun=!!SAMPLE&&!!db;
@@ -4534,6 +4798,7 @@ function subscribe(){
 }
 $("retryLoad").onclick=()=>{if(db)subscribe()};
 
+document.body.appendChild($("mealSheet"));   // v70: Essens-Fenster auch von der Startseite (Planung) aus öffnen
 applyIcons();cleanupDrafts();refreshDates();
 day=pickGymDay();$("dayChips").querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x.dataset.day===day));
 buildDraft();setRunType(planDay(today()).run?planDay(today()).run.type:"Easy");

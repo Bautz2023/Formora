@@ -406,7 +406,7 @@ R('''  buildExIndex();renderDayChips();mix=loadMix();subscribe();render();initPh
 import re as _re
 _m=_re.search(r'let TEMPLATES=\{.*?\n\};\nconst GYM_ORDER', s, _re.S)
 assert _m, "TEMPLATES"
-s=s[:_m.start()]+'let TEMPLATES={push:{name:"Einheit A",ex:[]},pull:{name:"Einheit B",ex:[]},ok:{name:"Einheit C",ex:[]}};\nconst GYM_ORDER'+s[_m.end():]
+s=s[:_m.start()]+'let TEMPLATES={push:{name:"Push",ex:[]},pull:{name:"Pull",ex:[]},ok:{name:"Oberkörper",ex:[]},uk:{name:"Unterkörper",ex:[]},gk:{name:"Ganzkörper",ex:[]},beine:{name:"Beine",ex:[]}};\nconst GYM_ORDER'+s[_m.end():]
 R('''const schedOf=mode=>CFG.sched||{gym:[0,2,4],run:mode==="hm"?[1,3,6]:[3,6]};''',
   '''const schedOf=mode=>CFG.sched||{gym:[],run:[]};''')
 R('''  CFG=c;buildExIndex();renderDayChips();''', '''  c.profile=c.height>0&&c.age>0;CFG=c;buildExIndex();renderDayChips();''')

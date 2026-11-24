@@ -123,9 +123,9 @@ async function backend(route){
   const leak=await page.evaluate(async()=>{const {data}=await SB.from('docs').select('col,id,data');return data.length});
   ok(leak===0,'Zweiter Benutzer kann die Zeilen des ersten nicht lesen');
   // Neues Konto: alles leer, nichts von Robin
-  const E=await page.evaluate(()=>({h:CFG.height,a:CFG.age,p:CFG.protein,g:CFG.goalKg,ex:GYM_ORDER.map(k=>TEMPLATES[k].ex.length),names:GYM_ORDER.map(k=>TEMPLATES[k].name),sg:schedOf('base').gym.length,sr:schedOf('base').run.length,tg:targetFor(today()).total,kg:kgNow(),week:planDay(today()).gym}));
+  const E=await page.evaluate(()=>({h:CFG.height,a:CFG.age,p:CFG.protein,g:CFG.goalKg,ex:GYM_ALL.map(k=>TEMPLATES[k].ex.length),names:GYM_ALL.map(k=>TEMPLATES[k].name),pick:document.querySelector('#todayCard [data-pk-type]')?1:0,sg:schedOf('base').gym.length,sr:schedOf('base').run.length,tg:targetFor(today()).total,kg:kgNow(),week:planDay(today()).gym}));
   ok(E.h===0&&E.a===0&&E.p===0&&E.g===0&&E.kg===0,'Neues Konto: Größe, Alter, Eiweiß, Zielgewicht, Gewicht = 0');
-  ok(E.ex.every(n=>n===0)&&E.names.join()==='Einheit A,Einheit B,Einheit C','Neues Konto: leere Trainingsplan-Einheiten (kein Plan von Robin)');
+  ok(E.ex.every(n=>n===0)&&E.ex.length===6&&E.names.join()==='Oberkörper,Unterkörper,Ganzkörper,Push,Pull,Beine','Neues Konto: alle 6 Einheiten leer (kein Plan von Robin)');
   ok(E.sg===0&&E.sr===0&&E.week===null&&E.tg===0,'Neues Konto: keine Trainings- und Lauftage, kcal-Ziel 0');
   const bad=[];
   for(const v of ['dash','gym','run','food','body']){await page.click('nav.tabs button[data-v="'+v+'"]');await page.waitForTimeout(250);
