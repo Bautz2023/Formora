@@ -80,6 +80,11 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    ok(dl.pick.run===pk&&!('skipRun' in dl)&&dl.addGym==='pull','Neue Auswahl ersetzt nur die alten Lauf-Felder, Gym bleibt');
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
+  console.log('Startseite: Trainingsplan-Karte weg');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page);await tab(page,'dash');
+   ok(await page.evaluate(()=>!document.getElementById('planCard').offsetParent&&![...document.querySelectorAll('#v-dash h2')].some(h=>h.offsetParent&&h.textContent.trim()==='Trainingsplan')),'Karte „Trainingsplan“ ist auf der Startseite ausgeblendet');
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
   console.log('4+5 · Kreise auf der Startseite');
   {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[0,2,4],run:[1,6]}});await tab(page,'dash');
    const orbs=await page.$$eval('#v-dash [data-orb]',b=>b.map(x=>x.dataset.orb+':'+Math.round(x.getBoundingClientRect().width)+'x'+Math.round(x.getBoundingClientRect().height)));
