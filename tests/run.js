@@ -88,16 +88,16 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
   console.log('4+5 · Kreise auf der Startseite');
   {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{sched:{gym:[0,2,4],run:[1,6]}});await tab(page,'dash');
    const orbs=await page.$$eval('#v-dash [data-orb]',b=>b.map(x=>x.dataset.orb+':'+Math.round(x.getBoundingClientRect().width)+'x'+Math.round(x.getBoundingClientRect().height)));
-   ok(orbs.length===5,'5 Kreise: '+orbs.join(' '));
+   ok(orbs.length===6,'6 Kreise: '+orbs.join(' '));
    ok(await page.evaluate(()=>{const b=[...document.querySelectorAll('[data-orb]')].map(x=>x.getBoundingClientRect());return b.every(r=>Math.abs(r.width-r.height)<2)&&getComputedStyle(document.querySelector('[data-orb]')).borderRadius==='50%'}),'Kreise sind rund');
-   ok(await page.evaluate(()=>{const [a,b]=[...document.querySelectorAll('.orbs.o2 [data-orb]')].map(x=>x.getBoundingClientRect().top),[c,d,e]=[...document.querySelectorAll('.orbs.o3 [data-orb]')].map(x=>x.getBoundingClientRect().top);return a===b&&c===d&&d===e&&c>a}),'Zwei nebeneinander, darunter drei in einer Reihe');
-   const v=await page.evaluate(()=>['tr','coach','pa','wp','wk'].map(k=>document.getElementById('orbV-'+k).textContent));
-   ok(/Woche: \d+ von \d+ Einheiten/.test(v[0])&&v[1]==='noch nie'&&v[2]==='Plan erstellen'&&/Heute frei: [\d.]+ kcal/.test(v[3])&&v[4]==='3× Gym · 2× Lauf','Kennzahlen: '+v.join(' | '));
-   ok(await page.evaluate(()=>[...document.querySelectorAll('[data-orb]')].map(x=>x.textContent).join('|')).then(t=>/Training prüfen/.test(t)&&/Coach-Check/.test(t)&&/Plan-Assistent/.test(t)&&/Plan dieser Woche/.test(t)&&/Trainings.?woche/.test(t)),'Label in den Kreisen');
+   ok(await page.evaluate(()=>{const R=[...document.querySelectorAll('.orbs')].map(g=>[...g.querySelectorAll('[data-orb]')].map(x=>x.getBoundingClientRect().top)),[A,B]=R;return A.length===3&&B.length===3&&A.every(v=>v===A[0])&&B.every(v=>v===B[0])&&B[0]>A[0]}),'Zwei nebeneinander, darunter drei in einer Reihe');
+   const v=await page.evaluate(()=>['tr','coach','pa','wp','wk','vol'].map(k=>document.getElementById('orbV-'+k).textContent));
+   ok(/Woche: \d+ von \d+ Einheiten/.test(v[0])&&v[1]==='noch nie'&&v[2]==='Plan erstellen'&&/Heute frei: [\d.]+ kcal/.test(v[3])&&v[4]==='3× Gym · 2× Lauf'&&v[5]==='noch keine Einheit','Kennzahlen: '+v.join(' | '));
+   ok(await page.evaluate(()=>[...document.querySelectorAll('[data-orb]')].map(x=>x.textContent).join('|')).then(t=>/Training prüfen/.test(t)&&/Coach-Check/.test(t)&&/Trainings.?volumen/.test(t)&&/Plan-Assistent/.test(t)&&/Plan dieser Woche/.test(t)&&/Trainings.?woche/.test(t)),'Label in den Kreisen');
    ok(await page.evaluate(()=>[...document.querySelectorAll('.orbp')].every(p=>!p.classList.contains('open')&&p.getBoundingClientRect().height<1)),'Alle zu: nehmen keinen Platz ein');
-   const h=await page.evaluate(()=>{const a=document.querySelector('.orbs.o2').getBoundingClientRect().top,b=document.querySelector('.orbs.o3').getBoundingClientRect().bottom;return Math.round(b-a)});
+   const h=await page.evaluate(()=>{const a=document.querySelectorAll('.orbs')[0].getBoundingClientRect().top,b=document.querySelectorAll('.orbs')[1].getBoundingClientRect().bottom;return Math.round(b-a)});
    ok(h<420,'Fünf Funktionen brauchen nur '+h+' px Höhe');
-   for(const [k,txt] of [['tr','Training prüfen'],['coach','Coach-Check'],['pa','Plan-Assistent starten'],['wp','Diese Woche'],['wk','Gym-Tage']]){
+   for(const [k,txt] of [['tr','Training prüfen'],['coach','Coach-Check'],['vol','Trainingsvolumen'],['pa','Plan-Assistent starten'],['wp','Diese Woche'],['wk','Gym-Tage']]){
      await page.click(`[data-orb="${k}"]`);await page.waitForTimeout(450);
      const st=await page.evaluate(k=>{const p=document.getElementById('orbP-'+k);return {open:p.classList.contains('open'),h:p.getBoundingClientRect().height,txt:p.innerText,exp:document.querySelector(`[data-orb="${k}"]`).getAttribute('aria-expanded'),others:[...document.querySelectorAll('.orbp.open')].length}},k);
      ok(st.open&&st.h>60&&st.exp==='true'&&st.others===1&&st.txt.includes(txt),'Kreis '+k+' klappt auf (Inhalt „'+txt+'“, '+Math.round(st.h)+' px)');

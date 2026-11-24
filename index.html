@@ -587,7 +587,6 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
 .pkg .chip{padding:9px 0;text-align:center;justify-content:center}
 .pkdone{color:var(--good);font-weight:600}
 .orbs{display:grid;gap:12px;justify-items:center}
-.orbs.o2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .orbs.o3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .orb{width:100%;max-width:150px;aspect-ratio:1;border-radius:50%;border:0;background:var(--surface);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px;cursor:pointer;
   box-shadow:var(--lift,none),inset 0 0 0 1px var(--edge,transparent);transition:transform .2s ease,box-shadow .25s ease}
@@ -674,9 +673,10 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
 
     <div class="card" id="adDash" hidden></div>
 
-    <div class="orbs o2" role="group" aria-label="Auswertung">
+    <div class="orbs o3" role="group" aria-label="Auswertung">
       <button class="orb" data-orb="tr" aria-expanded="false" aria-controls="orbP-tr"><span class="oi" data-ico-raw="dumbbell"></span><span class="ol">Training prüfen</span><span class="ov" id="orbV-tr">–</span></button>
       <button class="orb" data-orb="coach" aria-expanded="false" aria-controls="orbP-coach"><span class="oi" data-ico-raw="heart"></span><span class="ol">Coach-Check</span><span class="ov" id="orbV-coach">–</span></button>
+      <button class="orb" data-orb="vol" aria-expanded="false" aria-controls="orbP-vol"><span class="oi" data-ico-raw="chart"></span><span class="ol">Trainings&shy;volumen</span><span class="ov" id="orbV-vol">–</span></button>
     </div>
     <div class="orbp" id="orbP-tr" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="tr" aria-label="Schließen">✕</button>
     <div class="card orbcard" id="trDash"></div>
@@ -686,6 +686,9 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
       <summary><h2 data-ico="heart">Coach-Check</h2><span class="label" id="coachState"></span></summary>
       <div id="coachBody"></div>
     </details>
+    </div></div>
+    <div class="orbp" id="orbP-vol" aria-hidden="true" inert><div class="orbin"><button class="orbx" data-orbx="vol" aria-label="Schließen">✕</button>
+    <div class="card orbcard"><div class="row sb"><h2 data-ico="dumbbell">Trainingsvolumen</h2></div><div class="ex-last">kg × Wiederholungen pro Einheit · Klimmzüge und Beinheben mit Körpergewicht + Zusatzgewicht</div><div id="cVol"></div></div>
     </div></div>
     <div class="orbs o3" role="group" aria-label="Planung">
       <button class="orb" data-orb="pa" aria-expanded="false" aria-controls="orbP-pa"><span class="oi" data-ico-raw="checkin"></span><span class="ol">Plan-Assistent</span><span class="ov" id="orbV-pa">–</span></button>
@@ -733,7 +736,6 @@ nav.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdro
     </div>
 
     <div class="card chart" hidden style="display:none"><h2 data-ico="scale">Körpergewicht</h2><div id="wTrend"></div><details class="tree fold"><summary>Diagramm anzeigen</summary><div class="foldin"><div id="cWeight"></div></div></details></div>
-    <div class="card chart"><h2 data-ico="dumbbell">Trainingsvolumen</h2><details class="tree fold"><summary>Diagramm anzeigen</summary><div class="foldin"><div class="ex-last">kg × Wiederholungen pro Einheit · Klimmzüge und Beinheben mit Körpergewicht + Zusatzgewicht</div><div id="cVol"></div></div></details></div>
 
 
 
@@ -3465,6 +3467,7 @@ function renderOrbs(){
   const W=weekUnits(),set=(k,v)=>{const el=$("orbV-"+k);if(el)el.textContent=v};
   set("tr",W.plan?"Woche: "+W.done+" von "+W.plan+" Einheiten":"noch kein Training geplant");
   set("coach",$("coachState").textContent||"starten");
+  {const ses=[...S.sessions].filter(x=>isDate(x.date)).sort(byDate),l=ses[ses.length-1];set("vol",l?"Letzte: "+f0(volume(l))+" kg":"noch keine Einheit")}
   const r=S.settingsRaw;set("pa",r.planBy==="assistent"&&isDate(r.planAt)?"Plan vom "+fmtDM(r.planAt):"Plan erstellen");
   const B=dayBudget(today());set("wp",B.total?(B.free>=0?"Heute frei: "+f0(B.free)+" kcal":f0(-B.free)+" kcal drüber"):"Tage planen");
   const sc=schedOf(planInfo(today()).mode);set("wk",(sc.gym.length||sc.run.length)?sc.gym.length+"× Gym · "+sc.run.length+"× Lauf":"Tage festlegen");
