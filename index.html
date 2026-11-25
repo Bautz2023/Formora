@@ -332,6 +332,16 @@ select.inline{width:auto;max-width:58%}
 .fdsel input{background:var(--surface)}
 .fdsel .btn.ghost,.fdsel select{background:var(--surface)}
 .fdcats{gap:6px}
+.mlist{display:flex;flex-direction:column;gap:8px}
+.mcard{background:var(--sunk);border-radius:var(--r-sm);padding:11px 13px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:center}
+.mcard b{font:600 15px var(--display);overflow-wrap:anywhere}.mcard .k{font:700 15px var(--display);text-align:right;white-space:nowrap}
+.mcard .s{grid-column:1/3;font-size:12.5px;color:var(--muted)}
+.mcard .acts{grid-column:1/3;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.mcard .acts .btn{padding:9px 14px;font-size:13.5px}
+.mcard .mlog{grid-column:1/3;display:flex;flex-direction:column;gap:10px;margin-top:8px;border-top:1px solid var(--line);padding-top:10px}
+.mtot{display:flex;justify-content:space-between;gap:10px;font:600 14px var(--display)}.mtot small{display:block;font:500 12px var(--body);color:var(--muted)}
+.mixmeta{display:flex;flex-direction:column;gap:8px}
+.mixport{align-items:center;gap:10px}.mixport span:first-child{font:600 14px var(--display)}.mixport input{width:64px;text-align:center}
 #fdStores{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px 2px}#fdStores::-webkit-scrollbar{display:none}#fdStores .chip{flex:none}
 .fdlist.scroll,.pelistbox{max-height:62vh;overflow-y:auto;overscroll-behavior:contain}
 .fdcats .chip{font-size:12.5px;padding:6px 10px}
@@ -883,13 +893,18 @@ details.tree summary .gpv{margin-left:auto}
             <div id="fdNew" class="fdsel" hidden></div>
             <div class="fdlist" id="fdList"></div>
             <div id="secFav" class="fdbox" hidden>
-              <div class="row sb"><span class="label" id="favLabel">Antippen = eintragen</span><button class="btn ghost" id="favEditBtn" aria-pressed="false">Bearbeiten</button></div>
+              <button class="btn wide" id="favNew">+ Neue Mahlzeit erstellen</button>
               <input id="favSearch" type="search" placeholder="Meine Mahlzeiten durchsuchen" maxlength="60" aria-label="Meine Mahlzeiten durchsuchen">
-              <div class="chips" id="multChips" role="group" aria-label="Menge"></div>
-              <div class="chips" id="favList"></div>
+              <div class="chips fdcats" id="favSlots" role="group" aria-label="Passt zu"></div>
+              <div class="mlist" id="favList"></div>
+              <div class="mlist" id="favToday"></div>
             </div>
             <details class="tree fold" id="secMix" hidden><summary>Zutaten <span id="mixCount"></span></summary><div class="foldin">
             <div class="ex-last" id="mixHint">Lebensmittel oben suchen, Menge wählen und „+ Zutat“ tippen.</div>
+            <div id="mixMeta" class="mixmeta" hidden>
+              <div class="chips" id="mixSlots" role="group" aria-label="Passt zu"></div>
+              <div class="row mixport"><span>Rezept ergibt</span><input id="mixPort" inputmode="numeric" maxlength="2" value="1" aria-label="Portionen"><span class="label">Portion(en)</span></div>
+            </div>
             <div class="mixlist" id="mixList"></div>
             <div class="mixres" id="mixRes" hidden></div>
             <label class="f">Name der Mahlzeit<input id="mixName" maxlength="80" placeholder="z. B. Skyr-Bowl"></label>
@@ -1212,6 +1227,7 @@ details.tree summary .gpv{margin-left:auto}
       </div>
       <button class="btn wide" id="saveBody">Gewicht speichern</button>
     </div>
+    <div class="card chart" id="kgWeek"></div>
     <div class="orbs o3" role="group">
       <button class="orb" data-orb="prog" aria-expanded="false" aria-controls="orbP-prog"><span class="oi" data-ico-raw="trend"></span><span class="ol">Prognose</span><span class="ov" id="orbV-prog">–</span></button>
       <button class="orb" data-orb="ad" aria-expanded="false" aria-controls="orbP-ad"><span class="oi" data-ico-raw="flame"></span><span class="ol">kcal-Ziel prüfen</span><span class="ov" id="orbV-ad">–</span><i class="odot" id="orbD-ad" hidden></i></button>
@@ -2102,26 +2118,18 @@ function renderFood(){
   renderNut(E,T);
   // Pop-up der gewählten Mahlzeit
   const open=!$("mealSheet").hidden,sm=sheetMeal||meal;
-  if(open){$("sheetTitle").textContent=(editing&&editing.kind==="foods"?"Meine Mahlzeit bearbeiten":mealLbl(sm));$("sheetSub").textContent=PLAN_DS?"Planen für "+fmtD(PLAN_DS)+" – wird nur vorgemerkt":(isToday?"Heute":fmtD(ds))+(sm==="Snack 2"?" · nach dem Abendessen":sm==="Snack"?" · zwischendurch":"")}
+  if(open){$("sheetTitle").textContent=(editing&&editing.kind==="foods"?(editing.id?"Meine Mahlzeit bearbeiten":"Neue Mahlzeit"):mealLbl(sm));$("sheetSub").textContent=PLAN_DS?"Planen für "+fmtD(PLAN_DS)+" – wird nur vorgemerkt":(isToday?"Heute":fmtD(ds))+(sm==="Snack 2"?" · nach dem Abendessen":sm==="Snack"?" · zwischendurch":"")}
   $("mealSheet").classList.toggle("planmode",!!PLAN_DS);
   $("mealChips").hidden=!(editing&&editing.kind==="meals");
   setHTML($("mealChips"),$("mealChips").hidden?"":h`<span class="label" style="align-self:center">Mahlzeit:</span>${MEALS.map(m=>h`<button class="chip sm ink" data-m="${m}" aria-pressed="${m===meal}">${mealLbl(m)}${m==="Snack 2"?" (abends)":""}</button>`)}`);
   // Wie gestern (nur diese Mahlzeit)
   const y=addDays(ds,-1),yn=MEALS.includes(sm)?S.meals.filter(x=>x.date===y&&x.meal===sm).length:0;
   setHTML($("copyY"),db&&yn&&!editing?h`<button class="chip sm" data-copy="${sm}">Wie gestern eintragen (${yn})</button>`:"");
-  // Menge
-  setHTML($("multChips"),h`<span class="label" style="align-self:center">Menge</span>${MULTS.map(x=>h`<button class="chip sm ink" data-x="${x}" aria-pressed="${x===mult}">${fmtNum(x,x%1?1:0)}×</button>`)}`);
   $("bcPick").hidden=!db;
   if(!fdSel&&$("fdNew").hidden)renderFoodSearch();
   if(!$("mixList").contains(document.activeElement))renderMix();else updateMixRes();
-  // Favoriten
-  const q=favQuery.trim().toLowerCase();
-  const favs=favEdit?FOODS.map(x=>({...x,own:true})):DEFAULT_FOODS.map(x=>({...x,own:false})).concat(FOODS.map(x=>({...x,own:true})));
-  favView=favs.filter(x=>!q||String(x.name).toLowerCase().includes(q));
-  $("favLabel").textContent=favEdit?"Antippen = bearbeiten oder löschen":"Antippen = eintragen";
-  $("favEditBtn").setAttribute("aria-pressed",favEdit);$("favEditBtn").textContent=favEdit?"Fertig":"Bearbeiten";$("favEditBtn").hidden=!db;
-  setHTML($("favList"),favView.length?favView.map((x,i)=>h`<button class="chip fav${x.own?" own":""}${favEdit?" editing":""}" data-i="${i}">${x.name}<small>${f0(N(x.kcal)*(favEdit?1:mult))} kcal · ${macTxt(N(x.c)*(favEdit?1:mult),N(x.f)*(favEdit?1:mult),N(x.p)*(favEdit?1:mult))}${Array.isArray(x.items)&&x.items.length>1?" · "+x.items.length+" Zutaten":""}</small></button>`)
-    :h`<span class="ex-last">${q?"Keine Mahlzeit gefunden.":"Noch keine Mahlzeiten gespeichert. Ein Foto-Ergebnis legst du mit „Nur speichern“ hier ab."}</span>`);
+  // Meine Mahlzeiten
+  renderFavs(E,sm,ds);
   // Liste
   const SL=E.list.filter(x=>groupOf(x)===sm).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   $("sheetSum").textContent=SL.length?f0(sum(SL.map(x=>N(x.kcal))))+" kcal · "+macTxt(sum(SL.map(x=>N(x.c))),sum(SL.map(x=>N(x.f))),sum(SL.map(x=>N(x.p)))):"Noch nichts eingetragen";
@@ -2172,17 +2180,84 @@ function renderNut(E,T){
 $("fWeek").onclick=e=>{const b=e.target.closest("[data-day]");if(!b||b.disabled)return;$("fDate").value=b.dataset.day;touched.fDate=true;renderFood()};
 $("mealSheet").addEventListener("click",e=>{if(e.target.closest("[data-close]"))closeMealSheet()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mealSheet").hidden)closeMealSheet()});
-$("multChips").onclick=e=>{const b=e.target.closest("[data-x]");if(!b)return;mult=+b.dataset.x;renderFood()};
+/* ---------- Meine Mahlzeiten: Liste, Neu, Kopieren, Eintragen mit Portionen ----------
+   foods/{id}: {name,kcal,p,c,f,items?} – kcal/Makros gelten für EINE Portion.
+   Optional neu: portions (Rezept ergibt N Portionen, items = ganzes Rezept), slot (passt zu Frühstück/Mittag/Abend/Snack). */
+const FAV_SLOTS=["Frühstück","Mittag","Abend","Snack"];
+const favPort=x=>{const n=Math.round(N(x.portions));return n>1&&n<=20?n:1};
+const favGrams=x=>{const it=normItems(x.items);return it&&it.every(i=>!i.fx)?sum(it.map(i=>N(i.g)))/favPort(x):0};
+let favSlot="",favLog=null;
+function favLogVals(x){const pg=favGrams(x),k=favLog.mode==="g"&&pg>0?N(favLog.g)/pg:favLog.k;return {k,kcal:N(x.kcal)*k,c:N(x.c)*k,f:N(x.f)*k,p:N(x.p)*k}}
+function renderFavs(E,sm,ds){
+  const q=normQ(favQuery).trim(),slotOf=x=>FAV_SLOTS.includes(x.slot)?x.slot:"";
+  const pref=sm==="Snack 2"?"Snack":sm;
+  $("favNew").hidden=!db;
+  setHTML($("favSlots"),[["","Alle"]].concat(FAV_SLOTS.map(x=>[x,mealLbl(x)])).map(([k,l])=>h`<button class="chip sm ink" data-fs="${k}" aria-pressed="${k===favSlot}">${l}</button>`));
+  favView=FOODS.filter(x=>(!q||normQ(x.name).includes(q))&&(!favSlot||slotOf(x)===favSlot))
+    .sort((a,b)=>(slotOf(b)===pref)-(slotOf(a)===pref)||String(a.name).localeCompare(String(b.name),"de"));
+  if(favLog&&!favView.some(x=>x.id===favLog.id))favLog=null;
+  setHTML($("favList"),favView.length?favView.map((x,i)=>{const P=favPort(x),its=normItems(x.items),info=[slotOf(x)?mealLbl(slotOf(x)):"",P>1?"Rezept für "+P+" Portionen · pro Portion":its&&its.length>1?its.length+" Zutaten":"",macTxt(N(x.c),N(x.f),N(x.p))].filter(Boolean).join(" · ");
+    const lg=favLog&&favLog.id===x.id?favLog:null;
+    return h`<div class="mcard" data-fcard="${i}"><b>${x.name}</b><span class="k">${f0(x.kcal)} kcal</span><span class="s">${info}</span>
+      ${db?h`<span class="acts">${lg?"":h`<button class="btn" data-fl="${i}">Eintragen</button>`}<button class="btn ghost" data-fe="${i}">Bearbeiten</button><button class="btn ghost" data-fc="${i}">Kopieren</button></span>`:""}
+      ${lg?favLogHtml(x,i,lg):""}</div>`})
+    :h`<span class="ex-last">${q||favSlot?"Keine Mahlzeit gefunden.":"Noch keine Mahlzeiten gespeichert. Tippe auf „+ Neue Mahlzeit erstellen“."}</span>`);
+  // Aus heute übernehmen: Einträge dieser Mahlzeit am gewählten Tag
+  const L=MEALS.includes(sm)?E.list.filter(x=>x.meal===sm):[];
+  setHTML($("favToday"),db&&L.length&&!PLAN_DS?h`<span class="fdh">Aus ${ds===today()?"heute":fmtD(ds)} übernehmen</span>
+    <div class="mcard"><b>${mealLbl(sm)} ${ds===today()?"von heute":"vom "+fmtDM(ds)}</b><span class="k">${f0(sum(L.map(x=>N(x.kcal))))} kcal</span>
+      <span class="s">${L.length} ${L.length===1?"Eintrag":"Einträge"}: ${L.map(x=>String(x.name).replace(/\s*\([^)]*\)$/,"")).join(", ")}</span>
+      <span class="acts"><button class="btn ghost" id="favFromDay">Als Mahlzeit speichern</button></span></div>`:"");
+  if($("favFromDay"))$("favFromDay").onclick=()=>{const items=L.flatMap(x=>mixFromRecord(x).items);
+    openNewFood({items,name:L.length===1?clean(L[0].name,80):mealLbl(sm),slot:FAV_SLOTS.includes(pref)?pref:"",portions:1})};
+}
+function favLogHtml(x,i,lg){const pg=favGrams(x),v=favLogVals(x),P=favPort(x);
+  return h`<div class="mlog"><span class="label">Wie viel hast du gegessen?</span>
+    <div class="chips">${[.5,1,1.5,2].map(k=>h`<button class="chip sm ink" data-flk="${k}" aria-pressed="${lg.mode==="k"&&lg.k===k}">${({0.5:"½",1:"1 Portion",1.5:"1½",2:"2"})[k]}</button>`)}${pg>0?h`<button class="chip sm ink" data-flk="g" aria-pressed="${lg.mode==="g"}">Gramm</button>`:""}</div>
+    ${lg.mode==="g"?h`<label class="f" style="max-width:170px">Menge (g)<input id="flG" inputmode="decimal" value="${gTxt(N(lg.g))}"></label><span class="ex-last">1 Portion ≈ ${f0(pg)} g</span>`:""}
+    <label class="f" style="max-width:200px">Mahlzeit<select id="flMeal">${MEALS.map(m=>h`<option value="${m}"${raw(m===meal?" selected":"")}>${mealLbl(m)}${m==="Snack 2"?" (abends)":""}</option>`)}</select></label>
+    <div class="mtot" id="flTot"><span>${lg.mode==="g"?gTxt(N(lg.g))+" g":fmtNum(v.k,v.k%1?1:0)+(v.k===1?" Portion":" Portionen")}<small>${P>1?fmtNum(v.k/P*100,0)+" % vom Rezept":""}</small></span><span style="text-align:right">${f0(v.kcal)} kcal<small>${macTxt(v.c,v.f,v.p)}</small></span></div>
+    <div class="row"><button class="btn" id="flGo" style="flex:1">Eintragen</button><button class="btn ghost" id="flAdj">Nur heute anpassen</button><button class="btn ghost" id="flX">Abbrechen</button></div></div>`}
+/** Zutaten einer gespeicherten Mahlzeit auf die gegessene Menge umrechnen */
+function favItemsFor(x,k){const its=normItems(x.items),P=favPort(x);return its?its.map(it=>({...it,g:Math.round(it.g*(it.fx?k:k/P)*10)/10})):null}
+function favEntry(x,v){const lg=favLog,items=favItemsFor(x,v.k),tag=lg.mode==="g"?" ("+gTxt(N(lg.g))+" g)":v.k!==1?" ("+fmtNum(v.k,v.k%1?1:0)+"×)":"";
+  return {name:clean(x.name+tag,TXT.name),kcal:v.kcal,p:v.p,c:v.c,f:v.f,meal:$("flMeal")?$("flMeal").value:meal,...(items?{items}:{})}}
 $("favSearch").oninput=()=>{favQuery=$("favSearch").value;renderFood()};
-$("favEditBtn").onclick=()=>{favEdit=!favEdit;if(!favEdit&&editing&&editing.kind==="foods")endEdit();renderFood()};
-$("favList").onclick=async e=>{
-  const b=e.target.closest("[data-i]");if(!b)return;const x=favView[+b.dataset.i];if(!x)return;
-  if(favEdit){if(x.own&&x.id)openEdit("foods/"+x.id);return}
-  if(Date.now()-favLock<1000)return;favLock=Date.now();
-  const k=mult;b.disabled=true;setTimeout(()=>{b.disabled=false},1000);
-  const items=normItems(x.items);
-  await addMeal({name:clean(x.name+(k!==1?" ("+fmtNum(k,k%1?1:0)+"×)":""),TXT.name),kcal:N(x.kcal)*k,p:N(x.p)*k,c:N(x.c)*k,f:N(x.f)*k,meal,...(items?{items:items.map(it=>({...it,g:Math.round(it.g*k*10)/10}))}:{})});
-};
+$("favSlots").onclick=e=>{const b=e.target.closest("[data-fs]");if(!b)return;favSlot=favSlot===b.dataset.fs?"":b.dataset.fs;renderFood()};
+$("favNew").onclick=()=>openNewFood({items:[],name:"",slot:FAV_SLOTS.includes(sheetMeal)?sheetMeal:sheetMeal==="Snack 2"?"Snack":"",portions:1});
+$("favList").addEventListener("input",e=>{if(e.target.id!=="flG"||!favLog)return;const n=num(e.target.value);if(n==null||n<=0)return;favLog.g=n;
+  const x=FOODS.find(f=>f.id===favLog.id);if(!x)return;const v=favLogVals(x);
+  setHTML($("flTot"),h`<span>${gTxt(n)} g<small>${favPort(x)>1?fmtNum(v.k/favPort(x)*100,0)+" % vom Rezept":""}</small></span><span style="text-align:right">${f0(v.kcal)} kcal<small>${macTxt(v.c,v.f,v.p)}</small></span>`)});
+$("favList").addEventListener("change",e=>{if(e.target.id==="flMeal"){meal=e.target.value;mealChosen=true}});
+$("favList").addEventListener("click",async e=>{
+  const at=k=>{const b=e.target.closest("[data-"+k+"]");return b?{b,x:favView[+b.dataset[k]]}:null};
+  let r;
+  if(r=at("fl")){if(!r.x)return;favLog={id:r.x.id,mode:"k",k:1,g:Math.round(favGrams(r.x))||100};renderFood();return}
+  if(r=at("fe")){if(r.x&&r.x.id)openEdit("foods/"+r.x.id);return}
+  if(r=at("fc")){if(!r.x||!needDb())return;const o=stripId(r.x);delete o.createdAt;delete o.updatedAt;
+    await withBusy(r.b,async()=>{const ref=await db.collection("foods").add(tidy({...o,name:clean(r.x.name+" (Kopie)",80),createdAt:Date.now()}));
+      toast("„"+r.x.name+"“ kopiert",()=>ref.delete())});return}
+  const kb=e.target.closest("[data-flk]");
+  if(kb&&favLog){const v=kb.dataset.flk;if(v==="g")favLog.mode="g";else{favLog.mode="k";favLog.k=+v}renderFood();
+    if(v==="g")setTimeout(()=>{const g=$("flG");if(g){g.focus();g.select()}},30);return}
+  if(e.target.closest("#flX")){favLog=null;renderFood();return}
+  const x=favLog&&FOODS.find(f=>f.id===favLog.id);if(!x)return;
+  if(e.target.closest("#flAdj")){const v=favLogVals(x);if(editing)endEdit(true);
+    const its=favItemsFor(x,v.k);
+    mix={items:its?its.map(itemToMix):[{x:{name:clean(x.name,80),kcal:v.kcal,c:v.c,f:v.f,p:v.p,fixed:true,src:"db"},g:1}],name:clean(x.name,80),est:null};
+    if($("flMeal"))meal=$("flMeal").value;mealChosen=true;$("mixSave").checked=false;favLog=null;fdTab="recent";saveMix();renderFood();$("secMix").open=true;
+    $("secMix").scrollIntoView({block:"start"});toast("Zutaten anpassen, dann „Mahlzeit eintragen“ – die gespeicherte Mahlzeit bleibt gleich");return}
+  const go=e.target.closest("#flGo");
+  if(go){const v=favLogVals(x);if(!(v.k>0)){toast("Menge eingeben");return}
+    await withBusy(go,async()=>{const ref=await addMeal(favEntry(x,v));if(ref){favLog=null;renderFood()}})}
+});
+/** Neue Mahlzeit im Baukasten anlegen (ohne gespeicherten Datensatz) */
+function openNewFood(pre){
+  if(!needDb())return;saveDraftNow();if(editing)endEdit(true);
+  editing={kind:"foods",id:null,path:null,orig:{},isNew:true};favLog=null;
+  openMixEdit({slot:pre.slot,portions:pre.portions},"Neue Mahlzeit",{items:(pre.items||[]).slice(0,30),name:clean(pre.name||"",80),est:null});renderMix();
+  if(!(pre.items||[]).length)setTimeout(()=>$("fdQ").focus(),60);
+}
 $("copyY").onclick=async e=>{
   const b=e.target.closest("[data-copy]");if(!b||!needDb())return;
   const ds=$("fDate").value||today(),m=b.dataset.copy,src=S.meals.filter(x=>x.date===addDays(ds,-1)&&x.meal===m);
@@ -2879,11 +2954,15 @@ function addToMix(x,g){
 function updateMixRes(){
   const t=mixTot(),n=mix.items.length;
   $("mixCount").textContent=n?n+(n===1?" Zutat · ":" Zutaten · ")+f0(t.kcal)+" kcal":"";
-  $("mixRes").hidden=!n;if(n)setHTML($("mixRes"),h`${f0(t.kcal)} kcal<small>${macTxt(t.c,t.f,t.p)}${isMixEdit()?"":" · "+meal}</small>`);
+  const P=editing&&editing.kind==="foods"?Math.max(1,mix.portions||1):1;
+  $("mixRes").hidden=!n;if(n)setHTML($("mixRes"),P>1?h`${f0(t.kcal/P)} kcal pro Portion<small>${macTxt(t.c/P,t.f/P,t.p/P)} · Rezept gesamt ${f0(t.kcal)} kcal für ${P} Portionen</small>`:h`${f0(t.kcal)} kcal<small>${macTxt(t.c,t.f,t.p)}${isMixEdit()?"":" · "+meal}</small>`);
   $("mixName").placeholder=mixAutoName()||"z. B. Skyr-Bowl";
 }
 function renderMix(){
   const ed=isMixEdit(),k=editing&&editing.kind;
+  $("mixMeta").hidden=k!=="foods";
+  if(k==="foods"){setHTML($("mixSlots"),h`<span class="label" style="align-self:center">Passt zu</span>${FAV_SLOTS.map(x=>h`<button class="chip sm ink" data-mslot="${x}" aria-pressed="${mix.slot===x}">${mealLbl(x)}</button>`)}`);
+    if(document.activeElement!==$("mixPort"))$("mixPort").value=mix.portions||1}
   $("secMix").hidden=!ed&&!mix.items.length;
   setHTML($("mixList"),mix.items.map((it,i)=>{const v=mixVal(it);
     return h`<div class="mixrow"><span class="n">${it.x.name}${it.x.src==="foto"?h` <span class="label">Foto</span>`:""}</span><span class="m" id="mixm-${i}">${f0(v.kcal)} kcal · ${macTxt(v.c,v.f,v.p)}</span>
@@ -2899,28 +2978,37 @@ $("mixList").addEventListener("input",e=>{const x=e.target;if(x.dataset.mi==null
   if(n!=null&&n>0){it.g=n;const v=mixVal(it);$("mixm-"+i).textContent=f0(v.kcal)+" kcal · "+macTxt(v.c,v.f,v.p);updateMixRes();saveMix()}});
 $("mixList").addEventListener("click",e=>{const b=e.target.closest("[data-mx]");if(!b)return;mix.items.splice(+b.dataset.mx,1);saveMix();renderMix()});
 $("mixName").addEventListener("input",()=>{mix.name=clean($("mixName").value,80);saveMix()});
+$("mixSlots").addEventListener("click",e=>{const b=e.target.closest("[data-mslot]");if(!b)return;mix.slot=mix.slot===b.dataset.mslot?"":b.dataset.mslot;renderMix()});
+$("mixPort").addEventListener("input",()=>{const n=Math.round(num($("mixPort").value));if(n>=1&&n<=20){mix.portions=n;updateMixRes()}});
 $("mixClear").onclick=()=>{mix={items:[],name:"",est:null};$("mixSave").checked=false;saveMix();renderMix()};
 /** Gespeicherten Eintrag bzw. gespeicherte Mahlzeit in den Baukasten laden */
 function mixFromRecord(rec){
   const its=normItems(rec.items);if(its)return {items:its.map(itemToMix),name:clean(rec.name,80),est:rec.est==="foto"?"foto":null};
+
   if(rec.food&&rec.food.n&&N(rec.food.g)>0){const x=ownFoods().concat(FOOD_DB).find(f=>f.name===rec.food.n);
     if(x)return {items:[{x:{name:x.name,kcal:x.kcal,c:x.c,f:x.f,p:x.p,src:x.src},g:N(rec.food.g)}],name:"",est:null}}
   return {items:[{x:{name:clean(rec.name,80)||"Eintrag",kcal:N(rec.kcal),c:N(rec.c),f:N(rec.f),p:N(rec.p),fixed:true,src:"db"},g:1}],name:clean(rec.name,80),est:rec.est==="foto"?"foto":null};
 }
-function openMixEdit(rec,title){
-  mix=mixFromRecord(rec);$("eb-food").hidden=false;$("eb-food-t").textContent=title;$("favDel").hidden=editing.kind!=="foods";
+function openMixEdit(rec,title,pre){
+  mix=pre||mixFromRecord(rec);
+  if(editing.kind==="foods"){mix.portions=favPort(rec);mix.slot=FAV_SLOTS.includes(rec.slot)?rec.slot:""}$("eb-food").hidden=false;$("eb-food-t").textContent=title;$("favDel").hidden=editing.kind!=="foods"||!editing.id;
   showTab("food",{scroll:false});openMealSheet(editing.kind==="meals"?meal:sheetMeal||meal);$("secMix").open=true;renderMix();renderFoodSearch();$("foodForm").scrollIntoView({block:"start"});
 }
 function mixBody(){
   if(!mix.items.length)return {err:"Noch keine Zutaten – Lebensmittel suchen und „+ Zutat“ tippen"};
-  const t=mixTot(),name=clean(mix.name,80)||mixAutoName(),items=mixToItems(),one=mix.items.length===1&&!mix.items[0].x.fixed?mix.items[0]:null;
+  const P=editing&&editing.kind==="foods"?Math.max(1,Math.min(20,Math.round(mix.portions||1))):1,t0=mixTot(),t={kcal:t0.kcal/P,c:t0.c/P,f:t0.f/P,p:t0.p/P},name=clean(mix.name,80)||mixAutoName(),items=mixToItems(),one=mix.items.length===1&&!mix.items[0].x.fixed?mix.items[0]:null;
   const m={name,kcal:t.kcal,p:t.p,c:t.c,f:t.f,meal,items,...(one?{food:{n:one.x.name,g:r1(one.g),src:one.x.src==="own"?"own":"db"}}:{}),...(mix.est?{est:mix.est}:{})};
   const v=checkMeal(m);return v.err?{err:v.err}:{m,warn:v.warn};
 }
 const favBody=m=>tidy({name:m.name,kcal:Math.round(m.kcal),p:Math.round(m.p),c:Math.round(m.c),f:Math.round(m.f),items:m.items});
+/** Zusatzfelder aus dem Baukasten (nur Meine Mahlzeiten) */
+const favMeta=()=>({...(mix.portions>1?{portions:Math.round(mix.portions)}:{}),...(FAV_SLOTS.includes(mix.slot)?{slot:mix.slot}:{})});
 $("mixGo").onclick=()=>withBusy($("mixGo"),async()=>{
   const r=mixBody();if(r.err){toast(r.err);return}const m=r.m;if(!needDb())return;
-  if(editing&&editing.kind==="foods"){await db.doc("foods/"+editing.id).set(tidy({...stripId(editing.orig),...favBody(m),updatedAt:Date.now()}));toast("„"+m.name+"“ gespeichert");endEdit();return}
+  if(editing&&editing.kind==="foods"){
+    if(!editing.id){await db.collection("foods").add(tidy({...favBody(m),...favMeta(),createdAt:Date.now()}));toast("„"+m.name+"“ unter Meine Mahlzeiten gespeichert")}
+    else{const o=stripId(editing.orig);delete o.portions;delete o.slot;await db.doc("foods/"+editing.id).set(tidy({...o,...favBody(m),...favMeta(),updatedAt:Date.now()}));toast("„"+m.name+"“ gespeichert")}
+    endEdit();fdTab="fav";$("fdQ").value="";closeFdSel();renderFood();return}
   if(editing&&editing.kind==="meals"){const ds=$("fDate").value||today(),de=checkDate(ds,1);if(de){toast(de);return}
     const o=stripId(editing.orig);delete o.food;delete o.est;
     await db.doc("meals/"+editing.id).set(tidy({...o,date:ds,meal,name:m.name,kcal:Math.round(m.kcal),p:Math.round(m.p),c:Math.round(m.c),f:Math.round(m.f),items:m.items,...(m.food?{food:m.food}:{}),...(m.est?{est:m.est}:{}),editedAt:Date.now()}));
@@ -3751,7 +3839,39 @@ function renderOrbs(){
 
 const orbSet=(k,v,dot)=>{const el=$("orbV-"+k);if(el)el.textContent=v;const d=$("orbD-"+k);if(d)d.hidden=!dot};
 /** Kennzahlen der Kreise auf Lauf, Gewicht und Gym; ausgeblendete Karten blenden ihren Kreis aus */
+/* Gewicht: Wochenverlauf Mo–So unter dem Eintragen, mit Ø der Vorwoche als Linie */
+let kgWk=0;
+function renderKgWeek(){
+  const el=$("kgWeek");if(!el)return;
+  const t=today(),mon=addDays(monday(t),7*kgWk),days=[...Array(7)].map((_,i)=>addDays(mon,i));
+  const by={};S.body.forEach(b=>{if(isDate(b.date)&&N(b.kg)>0)by[b.date]=N(b.kg)});
+  const vals=days.map(d=>by[d]??null),got=vals.filter(v=>v!=null);
+  const prev=[...Array(7)].map((_,i)=>by[addDays(mon,i-7)]).filter(v=>v!=null);
+  const avg=got.length?got.reduce((a,b)=>a+b,0)/got.length:null,pAvg=prev.length?prev.reduce((a,b)=>a+b,0)/prev.length:null;
+  const W=340,H=170,L=34,R=10,T=22,B=26,iw=W-L-R,ih=H-T-B;
+  const ys=got.concat(pAvg!=null?[pAvg]:[]);let y0=ys.length?Math.min(...ys):80,y1=ys.length?Math.max(...ys):81;
+  const pd=Math.max(.3,(y1-y0)*.2);y0-=pd;y1+=pd;
+  const X=i=>L+iw*(i+.5)/7,Y=v=>T+ih-ih*(v-y0)/(y1-y0);
+  let g="";
+  for(let i=0;i<=2;i++){const v=y0+(y1-y0)*i/2,y=Y(v);g+=`<line x1="${L}" x2="${W-R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--line)" stroke-dasharray="2 4"/>`+axisTxt(L-5,y+3,fmtNum(v,1),"end")}
+  days.forEach((d,i)=>{const isT=d===t;g+=`<text x="${X(i).toFixed(1)}" y="${H-8}" fill="${isT?"var(--ink)":"var(--muted)"}" font-size="11" font-weight="${isT?700:500}" text-anchor="middle">${WD[i]}</text>`});
+  if(pAvg!=null){const y=Y(pAvg).toFixed(1);g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="5 4"/>`}
+  const pts=vals.map((v,i)=>v==null?null:[X(i),Y(v),v]).filter(Boolean);
+  if(pts.length>1)g+=`<path d="${pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join("")}" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`;
+  pts.forEach(p=>{g+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`
+    +`<text x="${p[0].toFixed(1)}" y="${(p[1]-9).toFixed(1)}" fill="var(--ink)" font-size="10.5" font-weight="600" text-anchor="middle">${fmtNum(p[2],1)}</text>`});
+  const diff=avg!=null&&pAvg!=null?avg-pAvg:null;
+  const sub=avg==null?"Noch keine Wiegung in dieser Woche.":"Ø "+fmtNum(avg,1)+" kg aus "+got.length+(got.length===1?" Wiegung":" Wiegungen")
+    +(diff!=null?" · "+(diff>0?"+":diff<0?"−":"±")+fmtNum(Math.abs(diff),1)+" kg zur Vorwoche":"");
+  setHTML(el,h`<div class="row sb"><h2 data-ico="chart">${kgWk===0?"Diese Woche":kgWk===-1?"Letzte Woche":"Woche ab "+fmtDM(mon)}</h2>
+    <span class="row" style="gap:6px"><button class="btn ghost" data-kgw="-1" aria-label="Woche davor">‹</button><button class="btn ghost" data-kgw="1" aria-label="Woche danach"${raw(kgWk>=0?" disabled":"")}>›</button></span></div>
+    <div class="ex-last" id="kgWeekSub">${sub}</div>
+    ${svg(W,H,"Gewicht "+fmtDM(mon)+" bis "+fmtDM(days[6]),g)}
+    ${pAvg!=null?h`<div class="ex-last">- - - Ø Vorwoche ${fmtNum(pAvg,1)} kg</div>`:""}`);
+}
+$("kgWeek").addEventListener("click",e=>{const b=e.target.closest("[data-kgw]");if(!b||b.disabled)return;kgWk=Math.min(0,kgWk+ +b.dataset.kgw);renderKgWeek()});
 function orbTabs(){
+  renderKgWeek();
   const t=today(),I=planInfo(t),r=raceOf(),LT=latestTest(),runs=[...S.runs].filter(x=>isDate(x.date)).sort(byDate),lr=runs[runs.length-1],pd=planDay(t);
   orbSet("hm",r&&r.date>=t?"Wettkampf "+fmtDM(r.date):weekLabel(I));
   orbSet("tst",LT?"5 km: "+fmtTime(LT.t):"5-km-Test fehlt",!LT);

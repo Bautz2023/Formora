@@ -505,6 +505,86 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    {const o=await overflow(page);ok(o<=0,'Suche ohne Überlauf ('+o+'px)')}
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
+  console.log('Meine Mahlzeiten: neu, Portionen, eintragen, kopieren');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page);
+   await page.evaluate(async()=>{await db.collection('foods').add({name:'Alter Shake',kcal:300,p:40,c:20,f:5})});await page.waitForTimeout(200);
+   await tab(page,'food');await page.evaluate(()=>openMealSheet('Frühstück'));await page.waitForTimeout(250);
+   await page.click('#fdTabs [data-tab="fav"]');await page.waitForTimeout(200);
+   ok(await page.isVisible('#favNew'),'„+ Neue Mahlzeit erstellen“ sichtbar');
+   ok(await page.isVisible('#favList .mcard'),'Bestehende Mahlzeit als Karte');
+   await page.click('#favNew');await page.waitForTimeout(250);
+   ok(await page.evaluate(()=>editing&&editing.kind==='foods'&&!editing.id&&$('secMix').open&&!$('mixMeta').hidden),'Neue Mahlzeit: leerer Baukasten mit Portionen und „Passt zu“');
+   ok(await page.getAttribute('#mixSlots [data-mslot="Frühstück"]','aria-pressed')==='true','Passt zu: Frühstück vorgewählt');
+   ok((await page.textContent('#sheetTitle')).includes('Neue Mahlzeit'),'Titel „Neue Mahlzeit“');
+   await page.fill('#fdQ','Haferflocken');await page.waitForTimeout(200);await page.click('#fdList [data-fq="s:0"]');await page.waitForTimeout(200);
+   await page.evaluate(()=>addToMix({name:'Milch 1,5 %',kcal:47,c:4.9,f:1.5,p:3.4,src:'db'},300));await page.waitForTimeout(100);
+   ok(await page.evaluate(()=>mix.items.length===2),'Zutaten über die Suche hinzugefügt');
+   await page.fill('#mixName','Porridge groß');await page.fill('#mixPort','2');await page.waitForTimeout(100);
+   ok(/pro Portion/.test(await page.textContent('#mixRes')),'Anzeige pro Portion');
+   const tot=await page.evaluate(()=>mixTot().kcal);
+   await page.click('#mixGo');await page.waitForTimeout(400);
+   const fav=await page.evaluate(()=>[...window.__store.foods.values()].find(x=>x.name==='Porridge groß'));
+   ok(fav&&fav.portions===2&&fav.slot==='Frühstück'&&fav.kcal===Math.round(tot/2)&&fav.items.length===2,'Gespeichert: 2 Portionen, Frühstück, kcal pro Portion ('+(fav&&fav.kcal)+')');
+   ok(await page.evaluate(()=>!editing&&fdTab==='fav'),'Zurück in „Meine Mahlzeiten“');
+   // Eintragen 1½ Portionen
+   const i=await page.evaluate(()=>favView.findIndex(x=>x.name==='Porridge groß'));
+   ok(i===0,'Passende Mahlzeiten (Frühstück) stehen oben');
+   await page.click(`#favList [data-fl="${i}"]`);await page.waitForTimeout(200);
+   await page.click('#favList [data-flk="1.5"]');await page.waitForTimeout(150);await page.click('#flGo');await page.waitForTimeout(400);
+   let m=await page.evaluate(()=>[...window.__store.meals.values()].find(x=>x.name.startsWith('Porridge groß')));
+   ok(m&&m.kcal===Math.round(fav.kcal*1.5)&&m.meal==='Frühstück'&&Math.abs(m.items[0].g-fav.items[0].g*0.75)<0.2,'1½ Portionen eingetragen, Zutaten anteilig ('+(m&&m.kcal)+' kcal)');
+   // Gramm
+   await page.click(`#favList [data-fl="${i}"]`);await page.waitForTimeout(200);await page.click('#favList [data-flk="g"]');await page.waitForTimeout(150);
+   const pg=await page.evaluate(()=>favGrams(FOODS.find(x=>x.name==='Porridge groß')));
+   await page.fill('#flG',String(Math.round(pg)));await page.waitForTimeout(100);await page.click('#flGo');await page.waitForTimeout(400);
+   ok(await page.evaluate(k=>[...window.__store.meals.values()].some(x=>/\(\d+ g\)$/.test(x.name)&&Math.abs(x.kcal-k)<=2),fav.kcal),'In Gramm eingetragen (1 Portion ≈ '+Math.round(pg)+' g)');
+   // Alte Mahlzeit ohne Portionen
+   const j=await page.evaluate(()=>favView.findIndex(x=>x.name==='Alter Shake'));
+   await page.click(`#favList [data-fl="${j}"]`);await page.waitForTimeout(150);await page.click('#flGo');await page.waitForTimeout(400);
+   ok(await page.evaluate(()=>[...window.__store.meals.values()].some(x=>x.name==='Alter Shake'&&x.kcal===300)),'Alte Mahlzeit ohne Portionen trägt wie bisher ein');
+   // Kopieren
+   await page.click(`#favList [data-fc="${i}"]`);await page.waitForTimeout(400);
+   ok(await page.evaluate(()=>[...window.__store.foods.values()].some(x=>x.name==='Porridge groß (Kopie)'&&x.portions===2)),'Kopieren legt „(Kopie)“ an');
+   // Bearbeiten: Portionen auf 4
+   const i2=await page.evaluate(()=>favView.findIndex(x=>x.name==='Porridge groß'));
+   await page.click(`#favList [data-fe="${i2}"]`);await page.waitForTimeout(300);
+   ok(await page.evaluate(()=>editing&&editing.id&&$('mixPort').value==='2'&&mix.items.length===2&&!$('favDel').hidden),'Bearbeiten lädt Zutaten und Portionen');
+   await page.fill('#mixPort','4');await page.click('#mixGo');await page.waitForTimeout(400);
+   ok(await page.evaluate(k=>{const x=[...window.__store.foods.values()].find(x=>x.name==='Porridge groß');return x.portions===4&&Math.abs(x.kcal-k/2)<=1},fav.kcal),'Auf 4 Portionen geändert → kcal pro Portion halbiert');
+   // Nur heute anpassen
+   const i3=await page.evaluate(()=>favView.findIndex(x=>x.name==='Porridge groß'));
+   await page.click(`#favList [data-fl="${i3}"]`);await page.waitForTimeout(150);await page.click('#flAdj');await page.waitForTimeout(250);
+   ok(await page.evaluate(()=>!editing&&mix.items.length===2&&mix.name==='Porridge groß'&&$('secMix').open),'„Nur heute anpassen“ lädt die Zutaten in den Baukasten');
+   await page.evaluate(()=>{mix.items.splice(1,1);renderMix()});await page.click('#mixGo');await page.waitForTimeout(400);
+   ok(await page.evaluate(()=>[...window.__store.foods.values()].find(x=>x.name==='Porridge groß').items.length===2&&[...window.__store.meals.values()].some(x=>x.name==='Porridge groß'&&x.items.length===1)),'Angepasst eingetragen, gespeicherte Mahlzeit unverändert');
+   // Aus heute übernehmen
+   await page.click('#fdTabs [data-tab="fav"]');await page.waitForTimeout(200);
+   ok(await page.isVisible('#favFromDay'),'„Aus heute übernehmen“ sichtbar');
+   await page.click('#favFromDay');await page.waitForTimeout(250);
+   ok(await page.evaluate(()=>editing&&editing.kind==='foods'&&!editing.id&&mix.items.length>=3),'Heutiges Frühstück als neue Mahlzeit geladen');
+   await page.click('#eb-food [data-cancel="food"]');await page.waitForTimeout(200);
+   // Filter
+   await page.click('#fdTabs [data-tab="fav"]');await page.waitForTimeout(150);await page.click('#favSlots [data-fs="Abend"]');await page.waitForTimeout(150);
+   ok(await page.evaluate(()=>favView.length===0),'Filter „Abendessen“: nichts zugeordnet');
+   await page.click('#favSlots [data-fs="Abend"]');await page.waitForTimeout(100);
+   {const o=await overflow(page);ok(o<=0,'Meine Mahlzeiten ohne Überlauf ('+o+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
+  console.log('Gewicht: Wochenverlauf');
+  {const {page,ctx,errs}=await newPage(browser,{time:'2026-11-26T09:00:00+01:00'});await seed(page);
+   await page.evaluate(async()=>{const w={'2026-11-17':84.1,'2026-11-18':83.9,'2026-11-20':83.6,'2026-11-23':83.4,'2026-11-24':83.1,'2026-11-26':82.9};
+     for(const [d,kg] of Object.entries(w))await db.collection('body').doc(d).set({date:d,kg});});await page.waitForTimeout(300);
+   await tab(page,'body');
+   ok(await page.isVisible('#kgWeek svg'),'Diagramm direkt unter „Gewicht eintragen“');
+   ok(await page.evaluate(()=>$('bodyKg').children[1].id==='kgWeek'),'… an zweiter Stelle');
+   const sub=await page.textContent('#kgWeekSub');ok(/Ø 83,1 kg aus 3 Wiegungen/.test(sub)&&/−0,7 kg zur Vorwoche/.test(sub),'Ø Woche und Vergleich zur Vorwoche: '+sub);
+   ok(await page.evaluate(()=>$('kgWeek').querySelectorAll('circle').length===3),'Drei Punkte diese Woche');
+   await page.click('[data-kgw="-1"]');await page.waitForTimeout(100);
+   ok((await page.textContent('#kgWeek h2')).includes('Letzte Woche'),'Zur letzten Woche blättern');
+   ok(await page.isDisabled('[data-kgw="1"]')===false,'… und wieder vor');
+   {const o=await overflow(page);ok(o<=0,'Ohne Überlauf ('+o+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
   console.log('Schmal (320 px)');
   {const {page,ctx,errs}=await newPage(browser,{time:T0,width:320});await seed(page);await tab(page,'dash');
    await page.click('#todayCard [data-pk-type="gym"]');await page.waitForTimeout(300);await page.click('#todayCard [data-pk-type="run"]');await page.waitForTimeout(300);
