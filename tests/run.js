@@ -485,6 +485,26 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    {const o=await overflow(page);ok(o<=0,'Wochenplanung ohne Überlauf ('+o+'px)')}
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
+  console.log('Produktsuche Supermärkte');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page);await tab(page,'food');
+   await page.evaluate(()=>openMealSheet('Frühstück'));await page.waitForTimeout(250);
+   await page.fill('#fdQ','skyr');await page.waitForFunction(()=>OFFI&&OFFI.length>100000,null,{timeout:15000});await page.waitForTimeout(200);
+   ok(await page.evaluate(()=>OFFI.filter(x=>x.store==='Aldi').length>15000&&OFFI.filter(x=>x.store==='Lidl').length>15000&&OFFI.filter(x=>x.store==='Kaufland').length>5000&&OFFI.filter(x=>x.store==='Rewe').length>5000),'Index mit über 100.000 Produkten, je Tausende von Aldi, Lidl, Kaufland, Rewe');
+   ok(await page.isVisible('#fdStores')&&await page.evaluate(()=>$('fdStores').querySelectorAll('[data-store]').length===12),'Supermarkt-Filter unter der Suche');
+   await page.click('#fdStores [data-store="Lidl"]');await page.waitForTimeout(200);
+   ok(await page.evaluate(()=>fdView.o.length>3&&fdView.o.every(x=>x.store==='Lidl')&&fdView.s.length===0),'Filter Lidl: nur Lidl-Produkte');
+   ok(/Milbona · Lidl/.test(await page.textContent('#fdList')),'Eigenmarke mit Supermarkt angezeigt („Milbona · Lidl“)');
+   await page.click('#fdStores [data-store="Lidl"]');await page.waitForTimeout(150);
+   ok(await page.evaluate(()=>fdStore===''&&fdView.s.length>0),'Nochmal tippen hebt den Filter auf');
+   await page.fill('#fdQ','aldi joghurt');await page.waitForTimeout(250);
+   ok(await page.evaluate(()=>fdView.o.length>3&&fdView.o.every(x=>x.store==='Aldi')),'Suche „aldi joghurt“ findet Aldi-Eigenmarken (z. B. Milsani)');
+   await page.fill('#fdQ','');await page.evaluate(()=>bcLookup('4056489012788'));await page.waitForTimeout(600);
+   ok(await page.evaluate(()=>fdSel&&fdSel.x.ean==='4056489012788'&&fdSel.x.store==='Lidl'),'Barcode-Treffer kennt den Supermarkt');
+   await page.click('#fdAdd');await page.waitForTimeout(400);
+   ok(await page.evaluate(()=>[...window.__store.meals.values()].some(m=>m.food&&m.food.ean==='4056489012788'&&m.food.src==='off')),'Produkt eingetragen');
+   {const o=await overflow(page);ok(o<=0,'Suche ohne Überlauf ('+o+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
   console.log('Schmal (320 px)');
   {const {page,ctx,errs}=await newPage(browser,{time:T0,width:320});await seed(page);await tab(page,'dash');
    await page.click('#todayCard [data-pk-type="gym"]');await page.waitForTimeout(300);await page.click('#todayCard [data-pk-type="run"]');await page.waitForTimeout(300);

@@ -332,6 +332,7 @@ select.inline{width:auto;max-width:58%}
 .fdsel input{background:var(--surface)}
 .fdsel .btn.ghost,.fdsel select{background:var(--surface)}
 .fdcats{gap:6px}
+#fdStores{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px 2px}#fdStores::-webkit-scrollbar{display:none}#fdStores .chip{flex:none}
 .fdlist.scroll,.pelistbox{max-height:62vh;overflow-y:auto;overscroll-behavior:contain}
 .fdcats .chip{font-size:12.5px;padding:6px 10px}
 .mixlist{display:flex;flex-direction:column;gap:6px}
@@ -877,6 +878,7 @@ details.tree summary .gpv{margin-left:auto}
             <div class="fdtabs" id="fdTabs" role="tablist" aria-label="Listen"></div>
             <div id="copyY" class="chips"></div>
             <div class="chips fdcats" id="fdCats" role="group" aria-label="Kategorien"></div>
+            <div class="chips fdcats" id="fdStores" role="group" aria-label="Supermarkt" hidden></div>
             <div id="fdSel" class="fdsel" hidden></div>
             <div id="fdNew" class="fdsel" hidden></div>
             <div class="fdlist" id="fdList"></div>
@@ -2630,17 +2632,20 @@ let OFFI=null,offLoad=null,offFail=false;const OFFBC=new Map();
 function offIndex(){
   if(OFFI)return Promise.resolve(OFFI);if(offLoad)return offLoad;
   offLoad=fetch("lebensmittel/suche.json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{
-    OFFI=(d.r||[]).map(a=>({ean:String(a[0]),name:String(a[1]),brand:String(a[2]||""),kcal:N(a[3]),c:N(a[4]),f:N(a[5]),p:N(a[6]),pg:N(a[7])||null,qty:String(a[8]||""),src:"off",k:normQ(a[1]+" "+(a[2]||""))}));
+    OFFI=(d.r||[]).map(a=>({ean:String(a[0]),name:String(a[1]),brand:String(a[2]||""),kcal:N(a[3]),c:N(a[4]),f:N(a[5]),p:N(a[6]),pg:N(a[7])||null,qty:String(a[8]||""),...(a[9]?{store:String(a[9])}:{}),src:"off",k:normQ(a[1]+" "+(a[2]||"")+" "+(a[9]||""))}));
     offFail=false;return OFFI}).catch(()=>{offLoad=null;offFail=true;return null});
   return offLoad;
 }
 const offFull=x=>x.brand&&!normQ(x.name).includes(normQ(x.brand))?x.name+" ("+x.brand+")":x.name;
-function offSearch(q){
+/* Supermärkte für den Filter unter der Suche (Spalte `store` im Suchindex) */
+const FD_STORES=["Aldi","Lidl","Kaufland","Rewe","Edeka","Penny","Netto","dm","Rossmann","Norma","Globus"];
+let fdStore="";
+function offSearch(q,store){
   if(!OFFI)return [];const words=normQ(q).trim().split(/\s+/).filter(Boolean);if(!words.length)return [];const out=[];
-  for(let i=0;i<OFFI.length&&out.length<400;i++){const x=OFFI[i],k=x.k;let sc=i/OFFI.length;let ok=true;
+  for(let i=0;i<OFFI.length&&out.length<400;i++){const x=OFFI[i],k=x.k;if(store&&x.store!==store)continue;let sc=i/OFFI.length;let ok=true;
     for(const w of words){const j=k.indexOf(w);if(j<0){ok=false;break}if(j>0&&/[a-z0-9]/.test(k[j-1])){if(w.length<3){ok=false;break}sc+=2}}
     if(ok){if(k.startsWith(words[0]))sc-=1;out.push([sc,x])}}
-  return out.sort((a,b)=>a[0]-b[0]).slice(0,25).map(r=>r[1]);
+  return out.sort((a,b)=>a[0]-b[0]).slice(0,30).map(r=>r[1]);
 }
 const offRec=(code,a)=>({ean:code,name:String(a[0]),brand:String(a[1]||""),kcal:N(a[2]),c:N(a[3]),f:N(a[4]),p:N(a[5]),
   ...(a[6]!=null?{sug:N(a[6])}:{}),...(a[7]!=null?{fib:N(a[7])}:{}),...(a[8]!=null?{sat:N(a[8])}:{}),...(a[9]!=null?{salt:N(a[9])}:{}),pg:N(a[10])||null,pn:N(a[10])?"Portion":null,qty:String(a[11]||""),src:"off"});
@@ -2649,7 +2654,9 @@ async function offByCode(code){
   const c=code.length===12?"0"+code:code;
   const sh=c.slice(-3,-1);let d=OFFBC.get(sh);
   if(!d){try{const r=await fetch("lebensmittel/bc-"+sh+".json");if(!r.ok)return null;d=await r.json();OFFBC.set(sh,d)}catch(e){return null}}
-  const a=d[c];return a?offRec(c,a):null;
+  const a=d[c];if(!a)return null;const x=offRec(c,a);
+  if(OFFI){const ix=OFFI.find(o=>o.ean===c);if(ix&&ix.store)x.store=ix.store}
+  return x;
 }
 const fdCalc=(x,g)=>{const o={kcal:x.kcal*g/100,c:x.c*g/100,f:x.f*g/100,p:x.p*g/100};["sug","fib","sat","salt"].forEach(k=>{if(x[k]!=null)o[k]=N(x[k])*g/100});return o};
 const fdName=x=>x.src==="off"?offFull(x):x.name;
@@ -2657,9 +2664,11 @@ const fdName=x=>x.src==="off"?offFull(x):x.name;
 function fdMeal(x,g,m){const w=fdCalc(x,g),n=fdName(x);
   return {name:n+" ("+fmtNum(g,g%1?1:0)+" g)",kcal:w.kcal,p:w.p,c:w.c,f:w.f,meal:m||meal,food:{n,g,src:x.src==="own"?"own":x.src==="off"?"off":"db",...(x.ean?{ean:String(x.ean)}:{})},
     ...["sug","fib","sat","salt"].reduce((o,k)=>(w[k]!=null&&(o[k]=w[k]),o),{})}}
+/** Marke, bei Eigenmarken mit Supermarkt: „Milsani · Aldi“ */
+const fdBrand=x=>x.store&&!normQ(x.brand).includes(normQ(x.store))?x.brand+" · "+x.store:x.brand;
 function fdRow(x,i,list){const g=x.lastG||100;
   return h`<div class="fdrow"><button class="fd" data-fd="${list}:${i}"><span class="n">${x.name}${x.src==="own"?h`<span class="tag">eigenes</span>`:""}</span><span class="k">${f0(x.kcal)} kcal</span>
-    <span class="m">${x.brand?h`<span class="b">${x.brand}</span> · `:""}pro 100 g · ${macTxt(x.c,x.f,x.p)}${x.lastG?" · zuletzt "+gTxt(x.lastG)+" g":x.pg?" · "+(x.pn||"Portion")+" = "+gTxt(x.pg)+" g":""}</span></button>
+    <span class="m">${x.brand?h`<span class="b">${fdBrand(x)}</span> · `:""}pro 100 g · ${macTxt(x.c,x.f,x.p)}${x.lastG?" · zuletzt "+gTxt(x.lastG)+" g":x.pg?" · "+(x.pn||"Portion")+" = "+gTxt(x.pg)+" g":""}</span></button>
     ${db?h`<button class="fdplus" data-fq="${list}:${i}" aria-label="${x.name}, ${gTxt(g)} g hinzufügen" title="${gTxt(g)} g hinzufügen">+</button>`:""}</div>`}
 let fdView={r:[],s:[],o:[]},fdCat="",fdTab="recent";
 const FD_TABS=[["recent","Verlauf"],["fav","Meine Mahlzeiten"],["own","Meine Lebensmittel"],["cat","Kategorien"]];
@@ -2668,7 +2677,7 @@ function renderFoodSearch(){
   const q=$("fdQ").value.trim(),ed=isMixEdit(),busy=!!fdSel||!$("fdNew").hidden;
   if(ed){$("secMix").open=true;if(fdTab==="fav")fdTab="recent"}
   setHTML($("fdTabs"),FD_TABS.filter(([k])=>!(ed&&k==="fav")).map(([k,l])=>h`<button role="tab" data-tab="${k}" aria-selected="${k===fdTab}">${l}${k==="fav"&&FOODS.length?" ("+FOODS.length+")":k==="own"&&FOODDB.length?" ("+FOODDB.length+")":""}</button>`));
-  $("fdTabs").hidden=!!q||busy;$("secFav").hidden=!!q||busy||ed||fdTab!=="fav";$("fdCats").hidden=!!q||busy||fdTab!=="cat";$("copyY").hidden=!!q||busy||fdTab!=="recent";
+  $("fdTabs").hidden=!!q||busy;$("fdStores").hidden=!q||busy;$("secFav").hidden=!!q||busy||ed||fdTab!=="fav";$("fdCats").hidden=!!q||busy||fdTab!=="cat";$("copyY").hidden=!!q||busy||fdTab!=="recent";
   $("qkBox").hidden=ed||busy;
   if(busy){$("fdList").hidden=true;return}
   $("fdList").hidden=false;$("fdList").classList.toggle("scroll",!q&&fdTab==="cat"&&!!fdCat);
@@ -2684,13 +2693,14 @@ function renderFoodSearch(){
       setHTML($("fdList"),fdCat?h`<span class="fdh">${fdCat} · ${fdView.s.length}</span>${fdView.s.map((x,i)=>fdRow(x,i,"s"))}`:h`<span class="ex-last">${FOOD_DB.length} Grundnahrungsmittel in ${FOOD_CATS.length} Kategorien.</span>`);return}
     fdView.r=recentFoods();fdView.s=[];
     setHTML($("fdList"),fdView.r.length?h`<span class="fdh">Zuletzt verwendet</span>${fdView.r.map((x,i)=>fdRow(x,i,"r"))}`
-      :h`<span class="ex-last">Suche in ${f0(FOOD_DB.length)} Grundnahrungsmitteln und rund ${OFFI?f0(Math.round(OFFI.length/1000)*1000):"50.000"} Markenprodukten oder scanne einen Barcode.</span>`);return}
-  fdView.s=searchFoods(q).slice(0,8);fdView.o=offSearch(q);
+      :h`<span class="ex-last">Suche in ${f0(FOOD_DB.length)} Grundnahrungsmitteln und rund ${OFFI?f0(Math.round(OFFI.length/1000)*1000):"100.000"} Markenprodukten von Aldi, Lidl, Kaufland, Rewe, Edeka & Co. oder scanne einen Barcode.</span>`);return}
+  setHTML($("fdStores"),[["","Alle Märkte"]].concat(FD_STORES.map(x=>[x,x])).map(([k,l])=>h`<button class="chip sm ink" data-store="${k}" aria-pressed="${k===fdStore}">${l}</button>`));
+  fdView.s=fdStore?[]:searchFoods(q).slice(0,8);fdView.o=offSearch(q,fdStore);
   if(!OFFI&&!offFail)offIndex().then(()=>{if($("fdQ").value.trim()&&!fdSel)renderFoodSearch()});
-  const prod=fdView.o.length?h`<span class="fdh">Markenprodukte</span>${fdView.o.map((x,i)=>fdRow(x,i,"o"))}`
+  const prod=fdView.o.length?h`<span class="fdh">${fdStore?"Produkte bei "+fdStore:"Markenprodukte"}</span>${fdView.o.map((x,i)=>fdRow(x,i,"o"))}`
     :!OFFI&&!offFail?h`<span class="ex-last">Produktdatenbank wird geladen …</span>`:"";
   setHTML($("fdList"),h`${fdView.s.length?h`<span class="fdh">Grundnahrungsmittel${FOODDB.length?" & eigene":""}</span>${fdView.s.map((x,i)=>fdRow(x,i,"s"))}`:""}${prod}
-    ${fdView.s.length||fdView.o.length||(!OFFI&&!offFail)?"":h`<span class="ex-last">Nichts gefunden für „${q}“.</span>`}
+    ${fdView.s.length||fdView.o.length||(!OFFI&&!offFail)?"":h`<span class="ex-last">Nichts gefunden für „${q}“${fdStore?" bei "+fdStore:""}.</span>`}
     <div class="row">${db&&eanOk(q)?h`<button class="btn" id="fdEanBtn">Barcode ${q} suchen</button>`:""}${db?h`<button class="btn ghost" id="fdNewBtn">Produkt von der Packung anlegen</button>`:""}${db&&SAMPLE?h`<button class="btn ghost" id="fdAskBtn">Claude nach Nährwerten fragen</button>`:""}</div>`);
   if($("fdNewBtn"))$("fdNewBtn").onclick=()=>openFdNew({name:q});
   if($("fdAskBtn"))$("fdAskBtn").onclick=()=>askFood(q);
@@ -2698,6 +2708,7 @@ function renderFoodSearch(){
 }
 $("fdTabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(!b)return;fdTab=b.dataset.tab;renderFood()});
 $("fdQ").addEventListener("input",()=>{fdSel=null;$("fdSel").hidden=true;renderFoodSearch()});
+$("fdStores").addEventListener("click",e=>{const b=e.target.closest("[data-store]");if(!b)return;fdStore=fdStore===b.dataset.store?"":b.dataset.store;renderFoodSearch()});
 $("fdCats").addEventListener("click",e=>{const b=e.target.closest("[data-cat]");if(!b)return;fdCat=fdCat===b.dataset.cat?"":b.dataset.cat;renderFoodSearch()});
 const fdPick=v=>{const [l,i]=v.split(":");return (l==="r"?fdView.r:l==="o"?fdView.o:fdView.s)[+i]};
 $("fdList").addEventListener("click",async e=>{
@@ -2714,7 +2725,7 @@ function openFdSel(x){
 function renderFdSel(){
   const {x,g}=fdSel,v=fdCalc(x,g),portions=x.pg?[1,2].map(n=>[n+" × "+(x.pn||"Portion")+" ("+gTxt(x.pg*n)+" g)",x.pg*n]):[],ed=isMixEdit();
   const nr=(n,k,u,sub,dig=0)=>v[k]==null?"":h`<dt class="${sub?"sub":""}">${n}</dt><dd>${fmtNum(v[k],dig)} ${u}</dd><dd class="g">${fmtNum(x[k],dig)}</dd>`;
-  setHTML($("fdSel"),h`<div class="row sb"><div><b>${x.name}</b>${x.brand?h`<div class="ex-last">${x.brand}${x.qty?" · "+x.qty:""}</div>`:""}</div>${x.src==="own"&&db?h`<button class="btn ghost" id="fdEdit">Bearbeiten</button>`:""}</div>
+  setHTML($("fdSel"),h`<div class="row sb"><div><b>${x.name}</b>${x.brand?h`<div class="ex-last">${fdBrand(x)}${x.qty?" · "+x.qty:""}</div>`:""}</div>${x.src==="own"&&db?h`<button class="btn ghost" id="fdEdit">Bearbeiten</button>`:""}</div>
     <div class="row" style="align-items:flex-end"><label class="f" style="max-width:130px">Menge (g)<input id="fdG" inputmode="decimal" value="${fmtNum(g,g%1?1:0)}"></label>
       ${ed?"":h`<label class="f" style="max-width:190px">Mahlzeit<select id="fdMeal">${MEALS.map(m=>h`<option value="${m}"${raw(m===meal?" selected":"")}>${mealLbl(m)}${m==="Snack 2"?" (abends)":""}</option>`)}</select></label>`}</div>
     <div class="chips">${portions.map(([l,pg])=>h`<button class="chip sm" data-g="${pg}">${l}</button>`)}${[50,100,150,200].filter(n=>!portions.some(([,pg])=>pg===n)).map(n=>h`<button class="chip sm" data-g="${n}">${n} g</button>`)}</div>

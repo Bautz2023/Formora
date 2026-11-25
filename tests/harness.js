@@ -29,6 +29,8 @@ const MOCK=`(()=>{
 async function newPage(browser,{time='2026-11-24T09:00:00+01:00',width=390}={}){
   const ctx=await browser.newContext({viewport:{width,height:844},locale:'de-DE',timezoneId:'Europe/Berlin'});
   await ctx.route('**/*',r=>{const u=r.request().url();
+    const lm=u.match(/^https:\/\/formora\.test\/(lebensmittel\/[a-z0-9-]+\.json)$/);
+    if(lm){const f=path.join(DIR,'..',lm[1]);return fs.existsSync(f)?r.fulfill({status:200,contentType:'application/json',body:fs.readFileSync(f)}):r.fulfill({status:404,body:''})}
     if(u.startsWith('https://formora.test/'))return r.fulfill({status:200,contentType:'text/html; charset=utf-8',body:fs.readFileSync(FILE,'utf8')});
     return r.abort()});
   const page=await ctx.newPage();const errs=[];
