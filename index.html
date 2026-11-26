@@ -332,6 +332,9 @@ select.inline{width:auto;max-width:58%}
 .fdsel input{background:var(--surface)}
 .fdsel .btn.ghost,.fdsel select{background:var(--surface)}
 .fdcats{gap:6px}
+.fatb{font:600 12px var(--display);align-self:flex-start;padding:4px 9px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.fatb.lv0{color:var(--accent)}.fatb.lv1{color:var(--ink)}.fatb.lv2{color:var(--warn)}
+.fatd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}.fatd.fresh{background:var(--accent)}.fatd.fat{background:var(--warn)}
 .mlist{display:flex;flex-direction:column;gap:8px}
 .mcard{background:var(--sunk);border-radius:var(--r-sm);padding:11px 13px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:center}
 .mcard b{font:600 15px var(--display);overflow-wrap:anywhere}.mcard .k{font:700 15px var(--display);text-align:right;white-space:nowrap}
@@ -1710,12 +1713,54 @@ function progression(name,target,last){
   return {up:false,inc:0,kg:top,sets:last.map(s=>({kg:N(s.kg),reps:Math.min(hi,N(s.reps)+1)})),
     text:"gleiches Gewicht"+(top?" ("+fmtKg(top)+" kg)":"")+", +1 Wdh. (Ziel "+Math.min(hi,lo+1)+"+)"+(rMin!=null&&rMin>=2?" – es war noch Luft (RIR "+RIR_LBL[rMin]+")":"")};
 }
-/** Werte, die grau im Feld stehen und beim Speichern ohne eigene Eingabe gelten: Vorschlag, sonst letztes Mal */
-function phSets(e,ds,exId){const last=lastSets(e.name,ds,exId),pr=last?progression(e.name,e.target,last):null;
-  return {last,pr,at:k=>(pr&&pr.sets&&pr.sets[k])||(last&&last[k])||null}}
-function lastSets(name,beforeDate,excludeId){
-  const s=[...S.sessions].sort((a,b)=>byDate(b,a)).find(x=>x.id!==excludeId&&x.date<=beforeDate&&(x.exercises||[]).some(e=>e.name===name&&(e.sets||[]).length));
-  return s?s.exercises.find(e=>e.name===name).sets:null;
+/* ---------- Vorermüdung: Sätze, die vorher in derselben Einheit dieselben Muskeln belastet haben ----------
+   gleiche Muskelgruppe zählt voll, mitarbeitende Muskeln (z. B. Trizeps beim Bankdrücken) halb. Wird aus der Reihenfolge
+   der Übungen berechnet – auch für alte Einheiten, ohne neues Datenfeld. */
+const FAT_SYN={brust:{schulter:.5,trizeps:.5},schulter:{brust:.5,trizeps:.5},trizeps:{brust:.5,schulter:.5},ruecken:{bizeps:.5},bizeps:{ruecken:.5},
+  beine:{po:.7,waden:.3},po:{beine:.7},waden:{beine:.3}};
+function fatW(from,to){if(from==="sonst"||to==="sonst")return 0;if(from===to)return 1;if(from==="ganz"||to==="ganz")return .5;return (FAT_SYN[to]&&FAT_SYN[to][from])||0}
+/** Vorermüdung je Übung einer Liste [{name, n}] (n = Anzahl Sätze) */
+function preSetsOf(list){const out=[];
+  list.forEach((e,i)=>{const g=groupOfEx(e.name);let p=0;for(let j=0;j<i;j++)p+=N(list[j].n)*fatW(groupOfEx(list[j].name),g);out.push(Math.round(p*10)/10)});return out}
+const sessPre=s=>preSetsOf((s.exercises||[]).map(e=>({name:e.name,n:(e.sets||[]).length})));
+const FAT_LV=p=>p<3?0:p<7?1:2;
+const FAT_LBL=["frisch","etwas vorermüdet","stark vorermüdet"];
+const fatBucket=p=>p<3?"fresh":"fat";
+const fatTxt=p=>p<3?"frisch":FAT_LBL[FAT_LV(p)]+" ("+fmtNum(p,p%1?1:0)+" "+(p===1?"Satz":"Sätze")+" vorher)";
+/** Wie stark du vorermüdet nachlässt: Anteil pro Satz vorher. Aus eigenen Daten gelernt (gleiche Übung frisch vs. vorermüdet
+    innerhalb von 21 Tagen), sonst vorsichtiger Standard 1,5 % pro Satz. Höchstens 25 % Abzug. */
+const FAT_DEF=.015;let fatCache=null;
+function fatRate(){
+  const key=S.sessions.length+":"+(S.sessions[S.sessions.length-1]||{}).id;if(fatCache&&fatCache.key===key)return fatCache;
+  const perf={};
+  for(const s of S.sessions){if(!isDate(s.date))continue;const pre=sessPre(s);
+    (s.exercises||[]).forEach((e,i)=>{if(isHold(e.name))return;let b=0;for(const x of e.sets||[]){const L=setLoad(e,s.date,x),r=N(x.reps);if(L>0&&r>0)b=Math.max(b,e1rm(L,r))}
+      if(b>0)(perf[e.name]||(perf[e.name]=[])).push({d:s.date,p:pre[i],sc:b})})}
+  const ks=[];
+  for(const L of Object.values(perf)){const fr=L.filter(x=>x.p<3);
+    for(const f of L){if(f.p<3)continue;let best=null;for(const q of fr){const dd=Math.abs(dayNum(q.d)-dayNum(f.d));if(dd<=21&&(!best||dd<best.dd))best={dd,sc:q.sc}}
+      if(best)ks.push(Math.max(0,Math.min(.05,(1-f.sc/best.sc)/f.p)))}}
+  const rate=ks.length>=3?Math.max(0,Math.min(.04,avg(ks))):FAT_DEF;
+  return fatCache={key,rate,n:ks.length,own:ks.length>=3};
+}
+/** Leistung auf „frisch“ hochgerechnet */
+const freshEq=(sc,p)=>p>0?sc/(1-Math.min(.25,fatRate().rate*p)):sc;
+/** Vorermüdung einer Übung im aktuellen Entwurf (Reihenfolge wie eingetragen) */
+function draftPre(e){const i=draft.indexOf(e);if(i<0)return 0;return preSetsOf(draft.map(d=>({name:d.name,n:d.n})))[i]}
+/** Werte, die grau im Feld stehen und beim Speichern ohne eigene Eingabe gelten: Vorschlag, sonst letztes Mal.
+    Bevorzugt das letzte Mal unter gleichen Bedingungen (frisch bzw. vorermüdet). */
+function phSets(e,ds,exId){const pre=draftPre(e),L=lastSetsInfo(e.name,ds,exId,fatBucket(pre)),last=L?L.sets:null,pr=last?progression(e.name,e.target,last):null;
+  return {last,pr,pre,lastPre:L?L.pre:null,lastDate:L?L.date:null,same:L?L.same:false,at:k=>(pr&&pr.sets&&pr.sets[k])||(last&&last[k])||null}}
+function lastSets(name,beforeDate,excludeId){const L=lastSetsInfo(name,beforeDate,excludeId);return L?L.sets:null}
+function lastSetsInfo(name,beforeDate,excludeId,bucket){
+  const ss=[...S.sessions].sort((a,b)=>byDate(b,a)).filter(x=>x.id!==excludeId&&x.date<=beforeDate&&(x.exercises||[]).some(e=>e.name===name&&(e.sets||[]).length));
+  const pick=s=>{const i=s.exercises.findIndex(e=>e.name===name&&(e.sets||[]).length);return {sets:s.exercises[i].sets,pre:sessPre(s)[i],date:s.date}};
+  if(!ss.length)return null;
+  const any=pick(ss[0]);
+  if(!bucket)return {...any,same:true};
+  if(fatBucket(any.pre)===bucket)return {...any,same:true};
+  for(const s of ss.slice(1,40)){const c=pick(s);if(fatBucket(c.pre)===bucket)return {...c,same:true}}
+  return {...any,same:false};
 }
 function bwOn(ds){const bw=cache().bw;let v=null;for(const b of bw){if(b.date<=ds)v=N(b.kg);else break}return v??(bw.length?N(bw[0].kg):kgNow())}
 function volume(s){return (s.exercises||[]).reduce((a,e)=>isHold(e.name)?a:a+(e.sets||[]).reduce((b,x)=>{const kg=N(x.kg),r=N(x.reps);return b+(isBwVol(e.name)?bwOn(s.date)+kg:kg)*r},0),0)}
@@ -3224,7 +3269,8 @@ function renderEx(){
     return h`<div class="ex"><div class="ex-head"><span class="ex-name">${e.name}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="swb" data-swap="${i}" aria-label="${e.name} tauschen">Tauschen</button><button class="swb xb" data-exdel="${i}" aria-label="${e.name} aus der Einheit entfernen" title="Entfernen">✕</button><span class="ex-target">${e.target?e.n+" × "+e.target+(H?" s":""):""}</span></span></div>
       <button class="exnote${en?"":" empty"}" data-note="${i}" aria-label="Notiz und Foto zu ${e.name}">${en&&en.photo?h`<img src="${blobSrc(en.photo)}" alt="" data-asset="1">`:""}<span>${en&&en.note?en.note:en&&en.photo?"Foto gespeichert":"+ Notiz / Foto"}</span></button>
       ${last?h`<div class="row sb" style="gap:6px"><span class="cmplegend"><span>Vergleich zum letzten Mal:</span><b class="up">▲ besser</b><b class="down">▼ schlechter</b></span><span class="cmpb" id="cmpb-${i}" hidden></span></div>`:""}
-      <div class="ex-last">${last?"Letztes Mal: "+last.map(s=>setTxt(e.name,s)+rirTxt(s)).join(" · "):e.vals.some(v=>v.pre)?"Startgewicht aus deinem Plan – Wdh. trägst du selbst ein.":"Noch keine Werte. Grau vorausgefüllt wird immer dein letztes Training."}</div>
+      ${draft.length>1&&!H?h`<div class="fatb lv${FAT_LV(PH.pre)}">${PH.pre<3?"Frisch":FAT_LBL[FAT_LV(PH.pre)].replace(/^./,c=>c.toUpperCase())+": "+fmtNum(PH.pre,PH.pre%1?1:0)+" Sätze vorher für diese Muskeln"}</div>`:""}
+      <div class="ex-last">${last?"Letztes Mal"+(PH.lastPre!=null&&draft.length>1&&!H?" ("+(PH.lastPre<3?"frisch":"vorermüdet")+", "+fmtDM(PH.lastDate)+")":"")+": "+last.map(s=>setTxt(e.name,s)+rirTxt(s)).join(" · ")+(PH.same||H?"":" – unter anderen Bedingungen, heute "+(PH.pre<3?"eher mehr möglich":"eher etwas weniger einplanen")):e.vals.some(v=>v.pre)?"Startgewicht aus deinem Plan – Wdh. trägst du selbst ein.":"Noch keine Werte. Grau vorausgefüllt wird immer dein letztes Training."}</div>
       ${prog?h`<div class="ex-prog${prog.up?" up":""}">Vorschlag: ${prog.text}</div>`:""}
       <div class="sets rir">${rows}</div>
       ${i===0?h`<div class="ex-last">RIR: Wie viele Wiederholungen hättest du noch geschafft? Tipp auf „–“ stellt 0 (am Limit), 1, 2 oder 3+ (leicht) ein. Beim nächsten Mal berücksichtigt der Vorschlag das.</div>`:""}
@@ -3294,7 +3340,7 @@ $("exList").addEventListener("click",e=>{
     P.pr.sets.slice(0,d.n).forEach((x,k)=>{d.vals[k].kg=fmtKg(x.kg);d.vals[k].r=String(N(x.reps));delete d.vals[k].pre});renderEx();saveDraftSoon();return}
   if(b.dataset.add!=null){const d=draft[+b.dataset.add];if(d.n<12){d.n++;d.vals.push({kg:"",r:"",done:false})}renderEx();saveDraftSoon()}
   else if(b.dataset.rem!=null){const d=draft[+b.dataset.rem];if(d.n>1){d.n--;d.vals.pop()}renderEx();saveDraftSoon()}
-  else if(b.dataset.same!=null){const d=draft[+b.dataset.same],last=lastSets(d.name,ds,exId)||[];
+  else if(b.dataset.same!=null){const d=draft[+b.dataset.same],last=phSets(d,ds,exId).last||[];
     while(d.n<Math.min(12,last.length)){d.n++;d.vals.push({kg:"",r:"",done:false})}
     last.slice(0,d.n).forEach((s,k)=>{d.vals[k].kg=fmtKg(s.kg);d.vals[k].r=String(N(s.reps))});renderEx();saveDraftSoon()}
   else if(b.dataset.done!=null){const [i,k]=b.dataset.done.split("-").map(Number),d=draft[i],v=d.vals[k];
@@ -3375,12 +3421,15 @@ function groupProgress(W,t=today()){
   const cs=addDays(monday(t),-7*(W-1)),ps=addDays(cs,-7*W),G={};
   const slot=(g)=>G[g]||(G[g]={g,cur:{sets:0,vol:0,best:null,n:0},prev:{sets:0,vol:0,best:null,n:0},weeks:{},ex:{}});
   for(const s of S.sessions){if(!isDate(s.date)||s.date<ps||s.date>t)continue;const per=s.date>=cs?"cur":"prev",wk=monday(s.date);
-    const seen=new Set();
-    for(const e of s.exercises||[]){const g=groupOfEx(e.name);if(g==="ganz"||!(e.sets||[]).length)continue;const o=slot(g),P=o[per];
+    const seen=new Set(),pre=sessPre(s);
+    for(const [ei,e] of (s.exercises||[]).entries()){const g=groupOfEx(e.name);if(g==="ganz"||!(e.sets||[]).length)continue;const o=slot(g),P=o[per],pp=pre[ei],bk=fatBucket(pp);
       for(const x of e.sets){const r=N(x.reps),L=setLoad(e,s.date,x);if(!(r>0)||!(L>0))continue;
-        const sc=e1rm(L,r),vol=L*r;P.sets++;P.vol+=vol;if(!P.best||sc>P.best.sc)P.best={sc,name:e.name,kg:N(x.kg),reps:r,date:s.date};
-        const X=o.ex[e.name]||(o.ex[e.name]={name:e.name,cur:null,prev:null});if(!X[per]||sc>X[per].sc)X[per]={sc,kg:N(x.kg),reps:r,date:s.date};
-        if(per==="cur"){const Wk=o.weeks[wk]||(o.weeks[wk]={wk,sets:0,vol:0,best:null});Wk.sets++;Wk.vol+=vol;if(!Wk.best||sc>Wk.best.sc)Wk.best={sc,name:e.name,kg:N(x.kg),reps:r}}}
+        // sc = auf frisch hochgerechnet (fairer Vergleich bei wechselnder Reihenfolge), raw = tatsächlich
+        const raw0=e1rm(L,r),sc=freshEq(raw0,pp),vol=L*r;P.sets++;P.vol+=vol;if(!P.best||sc>P.best.sc)P.best={sc,raw:raw0,pre:pp,name:e.name,kg:N(x.kg),reps:r,date:s.date};
+        const X=o.ex[e.name]||(o.ex[e.name]={name:e.name,cur:null,prev:null,fresh:{cur:null,prev:null},fat:{cur:null,prev:null}});
+        const rec={sc:raw0,adj:sc,pre:pp,kg:N(x.kg),reps:r,date:s.date};
+        if(!X[per]||sc>X[per].adj)X[per]=rec;if(!X[bk][per]||raw0>X[bk][per].sc)X[bk][per]=rec;
+        if(per==="cur"){const Wk=o.weeks[wk]||(o.weeks[wk]={wk,sets:0,vol:0,best:null});Wk.sets++;Wk.vol+=vol;if(!Wk.best||sc>Wk.best.sc)Wk.best={sc,raw:raw0,pre:pp,name:e.name,kg:N(x.kg),reps:r}}}
       if(!seen.has(g)){seen.add(g);o[per].n++}}}
   const dir=(a,b,th)=>!(b>0)?null:a/b-1>th?1:a/b-1<-th?-1:0;
   const list=Object.values(G).map(o=>{const vc=o.cur.vol/W,vp=o.prev.vol/W,sD=o.cur.best&&o.prev.best?dir(o.cur.best.sc,o.prev.best.sc,.005):null,vD=o.cur.sets&&o.prev.sets?dir(vc,vp,.05):null;
@@ -3396,20 +3445,23 @@ function renderProgress(){
   $("gpState").textContent=L.length?up+" ▲ · "+down+" ▼":"";
   const pct=v=>v==null?"":(v>0?"+":"")+fmtNum(v,Math.abs(v)<10?1:0)+" %";
   const dc=v=>v==null?"":v>0?" up":v<0?" down":"";
-  const row=x=>{const wk=Object.values(x.weeks).sort((a,b)=>a.wk<b.wk?-1:1),pts=wk.filter(w=>w.best).map(w=>({x:w.wk,y:w.best.sc})),
-      exs=Object.values(x.ex).sort((a,b)=>((b.cur&&b.cur.sc)||0)-((a.cur&&a.cur.sc)||0));
+  const row=x=>{const wk=Object.values(x.weeks).sort((a,b)=>a.wk<b.wk?-1:1),pts=wk.filter(w=>w.best).map(w=>({x:w.wk,y:w.best.sc,pre:w.best.pre})),
+      exs=Object.values(x.ex).sort((a,b)=>((b.cur&&b.cur.adj)||0)-((a.cur&&a.cur.adj)||0));
     return h`<details class="tree fold" data-gpg="${x.g}"${raw(gp.open.has(x.g)?" open":"")}><summary>${EX_GROUPS[x.g]||x.g}<span class="gpv ${x.state}">${GP_LBL[x.state]}</span></summary><div class="foldin gpg">
       <div class="gpm"><div class="mini"><span>Volumen / Woche</span><b>${f0(x.vc)} kg</b><span class="gpd${dc(x.vPct)}">${x.vPct!=null?pct(x.vPct)+" zu vorher":"kein Vergleich"}</span></div>
-        <div class="mini"><span>Beste Leistung</span><b>${x.cur.best?f0(x.cur.best.sc)+" kg":"–"}</b><span class="gpd${dc(x.sKg)}">${x.sKg!=null?(x.sKg>0?"+":"")+fmtNum(x.sKg,1)+" kg":"kein Vergleich"}</span></div>
+        <div class="mini"><span>Beste Leistung (frisch)</span><b>${x.cur.best?f0(x.cur.best.sc)+" kg":"–"}</b><span class="gpd${dc(x.sKg)}">${x.sKg!=null?(x.sKg>0?"+":"")+fmtNum(x.sKg,1)+" kg":"kein Vergleich"}</span></div>
         <div class="mini"><span>Sätze</span><b>${x.cur.sets}</b><span class="gpd">${x.prev.sets?"vorher "+x.prev.sets:"vorher –"}</span></div></div>
-      ${x.cur.best?h`<div class="ex-last">Bester Satz: <b>${x.cur.best.name}</b> ${fmtKg(x.cur.best.kg)} × ${x.cur.best.reps} (${fmtDM(x.cur.best.date)}), entspricht ca. ${f0(x.cur.best.sc)} kg für 1 Wdh. Der Vergleich zählt jedes Gerät gleich.</div>`:h`<div class="ex-last">In diesem Zeitraum nicht trainiert.</div>`}
-      ${exs.length?h`<span class="label">Übungen</span>${exs.map(e=>h`<div class="stl"><b>${e.name}</b><span>${e.cur?"jetzt "+fmtKg(e.cur.kg)+" × "+e.cur.reps+" (ca. "+f0(e.cur.sc)+" kg)":"jetzt –"} · ${e.prev?"vorher "+fmtKg(e.prev.kg)+" × "+e.prev.reps+" (ca. "+f0(e.prev.sc)+" kg)":"vorher –"}${e.cur&&e.prev?h` <b class="gpd${dc(e.cur.sc-e.prev.sc)}">${e.cur.sc>e.prev.sc*1.005?"▲":e.cur.sc<e.prev.sc*.995?"▼":"="}</b>`:""}</span></div>`)}`:""}
-      ${wk.length?h`<span class="label">Pro Woche</span>${wk.map(w=>h`<div class="stl"><b>${fmtDM(w.wk)} · ${w.sets} Sätze · ${f0(w.vol)} kg</b><span>${w.best?"Beste: "+w.best.name+" "+fmtKg(w.best.kg)+" × "+w.best.reps+" (ca. "+f0(w.best.sc)+" kg)":""}</span></div>`)}`:""}
-      ${pts.length>1?h`<div class="chart">${lineChart(pts,{color:"var(--accent)",fmt:v=>fmtNum(v,0),label:(EX_GROUPS[x.g]||x.g)+": beste Leistung pro Woche, zuletzt "+f0(pts[pts.length-1].y)+" kg"})}</div>`:""}
+      ${x.cur.best?h`<div class="ex-last">Bester Satz: <b>${x.cur.best.name}</b> ${fmtKg(x.cur.best.kg)} × ${x.cur.best.reps} (${fmtDM(x.cur.best.date)}, ${fatTxt(x.cur.best.pre)}), entspricht ca. ${f0(x.cur.best.raw)} kg für 1 Wdh.${x.cur.best.pre>=3?", frisch gerechnet ca. "+f0(x.cur.best.sc)+" kg":""}. Der Vergleich zählt jedes Gerät gleich.</div>`:h`<div class="ex-last">In diesem Zeitraum nicht trainiert.</div>`}
+      ${exs.length?h`<span class="label">Übungen · getrennt nach frisch und vorermüdet</span>${exs.map(e=>h`<div class="stl"><b>${e.name}</b>${["fresh","fat"].filter(b=>e[b].cur||e[b].prev).map(b=>{const c=e[b].cur,p=e[b].prev;
+        return h`<span><i class="fatd ${b}"></i>${b==="fresh"?"frisch":"vorermüdet"}: ${c?fmtKg(c.kg)+" × "+c.reps:"–"} · vorher ${p?fmtKg(p.kg)+" × "+p.reps:"–"}${c&&p?h` <b class="gpd${dc(c.sc-p.sc)}">${c.sc>p.sc*1.005?"▲":c.sc<p.sc*.995?"▼":"="}</b>`:""}</span>`})}
+        ${e.cur?h`<span class="ex-last">Frischwert jetzt ca. ${f0(e.cur.adj)} kg${e.prev?" · vorher ca. "+f0(e.prev.adj)+" kg":""}</span>`:""}</div>`)}`:""}
+      ${wk.length?h`<span class="label">Pro Woche</span>${wk.map(w=>h`<div class="stl"><b>${fmtDM(w.wk)} · ${w.sets} Sätze · ${f0(w.vol)} kg</b><span>${w.best?"Beste: "+w.best.name+" "+fmtKg(w.best.kg)+" × "+w.best.reps+" ("+(w.best.pre<3?"frisch":"vorermüdet")+", frisch ca. "+f0(w.best.sc)+" kg)":""}</span></div>`)}`:""}
+      ${pts.length>1?h`<div class="chart">${lineChart(pts,{color:"var(--accent)",fmt:v=>fmtNum(v,0),dots:p=>p.pre<3?"var(--accent)":"var(--warn)",label:(EX_GROUPS[x.g]||x.g)+": beste Leistung pro Woche (frisch gerechnet), zuletzt "+f0(pts[pts.length-1].y)+" kg"})}<div class="ex-last"><i class="fatd fresh"></i>frisch · <i class="fatd fat"></i>vorermüdet, auf frisch hochgerechnet</div></div>`:""}
     </div></details>`};
   setHTML(el,h`<div class="chips" id="gpW" role="group" aria-label="Zeitraum">${[4,8,12].map(w=>h`<button class="chip sm ink" data-gpw="${w}" aria-pressed="${gp.w===w}">${w} Wochen</button>`)}</div>
     ${L.length?h`<div class="gpsum">${up?h`<b class="gpd up">${up} von ${L.length} Muskelgruppen besser</b>`:h`<b>${L.length} Muskelgruppen trainiert</b>`}${down?h` · <b class="gpd down">${down} schlechter</b>`:""}</div>
       <div class="ex-last">Verglichen werden die letzten ${R.W} Wochen mit den ${R.W} Wochen davor. Beste Leistung = geschätztes Maximalgewicht (e1RM) über alle Übungen der Gruppe, egal an welchem Gerät. Volumen = Gewicht × Wiederholungen.</div>
+      <div class="ex-last">Reihenfolge: Hast du vorher schon Sätze für dieselben Muskeln gemacht, gilt die Übung als vorermüdet und wird auf „frisch“ hochgerechnet – ${fatRate().own?h`<b>aus deinen Daten: ${fmtNum(fatRate().rate*100,1)} % weniger pro Satz vorher</b> (${fatRate().n} Vergleiche)`:h`vorerst mit ${fmtNum(FAT_DEF*100,1)} % pro Satz vorher, bis genug eigene Vergleiche da sind (${fatRate().n} von 3)`}.</div>
       ${L.map(row)}`
       :h`<div class="ex-last">Noch keine Einheiten mit Gewicht in diesem Zeitraum. Sobald du trainierst, siehst du hier pro Muskelgruppe, ob du besser wirst – auch wenn du Geräte und Reihenfolge wechselst.</div>`}`);
 }

@@ -273,7 +273,7 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    ok((await page.textContent('#exList')).includes('war es leicht (RIR 3+)'),'Begründung steht im Vorschlag');
    const p2=await ph(2,0);ok(p2.kg==='40'&&p2.r==='10','Letztes Mal am Limit (RIR 0): gleiches Gewicht und gleiche Wdh. ('+p2.kg+' × '+p2.r+')');
    ok((await page.textContent('#exList')).includes('am Limit (RIR 0)'),'Begründung „am Limit“');
-   ok((await page.textContent('#exList')).includes('Letztes Mal: 10 × 12 (RIR 1)'),'„Letztes Mal“ zeigt den RIR je Satz');
+   ok(/Letztes Mal[^:]*: 10 × 12 \(RIR 1\)/.test(await page.textContent('#exList')),'„Letztes Mal“ zeigt den RIR je Satz');
    // Vorschlag übernehmen
    await page.click('[data-sug="1"]');await page.waitForTimeout(250);
    ok(await page.inputValue('#kg-1-0')==='32,5'&&await page.inputValue('#r-1-0')===p1.r&&await page.inputValue('#kg-1-2')==='32,5','„Vorschlag übernehmen“ füllt alle Sätze (32,5 kg)');
@@ -582,6 +582,40 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    await page.click('[data-kgw="-1"]');await page.waitForTimeout(100);
    ok((await page.textContent('#kgWeek h2')).includes('Letzte Woche'),'Zur letzten Woche blättern');
    ok(await page.isDisabled('[data-kgw="1"]')===false,'… und wieder vor');
+   {const o=await overflow(page);ok(o<=0,'Ohne Überlauf ('+o+'px)')}
+   ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
+
+  console.log('Vorermüdung: Reihenfolge der Übungen');
+  {const {page,ctx,errs}=await newPage(browser,{time:T0});await seed(page,{gymMode:'free'});
+   await page.evaluate(async()=>{
+     const S3=n=>[{kg:n,reps:8},{kg:n,reps:8},{kg:n,reps:8}];
+     // 10.11.: Bankdrücken frisch 80 kg; 17.11.: als 4. Übung nach 3 Brust-/Schulterübungen 70 kg
+     await db.collection('sessions').add({date:'2026-11-10',day:'push',exercises:[{name:'Bankdrücken (Langhantel)',sets:S3(80)},{name:'Butterfly',sets:S3(40)}]});
+     await db.collection('sessions').add({date:'2026-11-17',day:'push',exercises:[{name:'Schrägbankdrücken Maschine',sets:S3(60)},{name:'Butterfly',sets:S3(40)},{name:'Schulterdrücken',sets:S3(40)},{name:'Bankdrücken (Langhantel)',sets:S3(70)}]});
+   });await page.waitForTimeout(300);
+   ok(await page.evaluate(()=>JSON.stringify(sessPre({exercises:[{name:'Schrägbankdrücken Maschine',sets:[1,2,3]},{name:'Butterfly',sets:[1,2,3]},{name:'Schulterdrücken',sets:[1,2,3]},{name:'Bankdrücken (Langhantel)',sets:[1,2,3]}]}))==='[0,3,3,7.5]'),'Sätze vorher: gleiche Muskeln voll, mitarbeitende halb (0 · 3 · 3 · 7,5)');
+   ok(await page.evaluate(()=>JSON.stringify(sessPre({exercises:[{name:'Kniebeugen',sets:[1,2,3,4]},{name:'Bankdrücken (Langhantel)',sets:[1,2,3]}]}))==='[0,0]'),'Beine vorher ermüden die Brust nicht');
+   await tab(page,'gym');
+   // Heute frisch: Bankdrücken als erste Übung → Vorschlag aus dem frischen Mal (80 kg)
+   await page.evaluate(()=>{addToDraft('Bankdrücken (Langhantel)');addToDraft('Butterfly')});await page.waitForTimeout(250);
+   let ph=await page.evaluate(()=>{const p=phSets(draft[0],today(),null);return {pre:p.pre,kg:N(p.last[0].kg),same:p.same}});
+   ok(ph.pre===0&&ph.kg===80&&ph.same,'Heute als 1. Übung: Vergleich mit dem letzten frischen Mal (80 kg statt 70 kg)');
+   ok(/Frisch/.test(await page.textContent('#exList .ex:first-child .fatb')),'Hinweis „Frisch“ an der Übung');
+   // Reihenfolge umdrehen: erst 3 Brustübungen, dann Bankdrücken
+   await page.evaluate(()=>{draft.length=0;['Schrägbankdrücken Maschine','Butterfly','Schulterdrücken','Bankdrücken (Langhantel)'].forEach(n=>addToDraft(n))});await page.waitForTimeout(250);
+   ph=await page.evaluate(()=>{const p=phSets(draft[3],today(),null);return {pre:p.pre,kg:N(p.last[0].kg),same:p.same}});
+   ok(ph.pre>=7&&ph.kg===70&&ph.same,'Als 4. Übung: Vergleich mit dem letzten vorermüdeten Mal (70 kg)');
+   ok(/vorermüdet/.test(await page.textContent('#exList .ex:nth-child(4) .fatb')),'Hinweis „vorermüdet“ mit Anzahl Sätze');
+   // Fortschritt
+   const r=await page.evaluate(()=>{const R=groupProgress(4),b=R.list.find(x=>x.g==='brust'),X=b.ex['Bankdrücken (Langhantel)'];
+     return {fresh:!!X.fresh.cur,fat:!!X.fat.cur,adj:X.fat.cur.adj,raw:X.fat.cur.sc,rate:fatRate().rate}});
+   ok(r.fresh&&r.fat,'Fortschritt: Bankdrücken getrennt nach frisch und vorermüdet');
+   ok(r.adj>r.raw,'Vorermüdeter Satz wird auf frisch hochgerechnet ('+Math.round(r.raw)+' → '+Math.round(r.adj)+' kg)');
+   ok(Math.abs(r.rate-0.015)<1e-9,'Ohne genug eigene Vergleiche: Standard 1,5 % pro Satz');
+   ok(await page.evaluate(()=>{fatCache=null;const t=[0,1,2].map(i=>({date:'2026-10-0'+(i+1),exercises:[{name:'Rudern',sets:[{kg:60,reps:10}]}]})).concat([0,1,2].map(i=>({date:'2026-10-0'+(i+4),exercises:[{name:'Latzug breit',sets:[{kg:50,reps:10},{kg:50,reps:10},{kg:50,reps:10},{kg:50,reps:10}]},{name:'Rudern',sets:[{kg:54,reps:10}]}]})));
+     const keep=S.sessions;S.sessions=keep.concat(t);const f=fatRate();S.sessions=keep;fatCache=null;return f.own&&f.n===4&&f.rate>0.02&&f.rate<0.026}),'Mit eigenen Daten gelernt (z. B. 10 % weniger nach 4 Sätzen ≈ 2,5 % pro Satz)');
+   await page.evaluate(()=>{$('gpCard').open=true;gp.open.add('brust');renderProgress()});await page.waitForTimeout(200);
+   const gt=await page.textContent('#gpBody');ok(/frisch:/.test(gt)&&/vorermüdet:/.test(gt)&&/Frischwert/.test(gt),'Anzeige: frisch / vorermüdet / Frischwert');
    {const o=await overflow(page);ok(o<=0,'Ohne Überlauf ('+o+'px)')}
    ok(errs.length===0,'Keine JS-Fehler '+errs.join(' | '));await ctx.close();}
 
