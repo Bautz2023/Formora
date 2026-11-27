@@ -959,7 +959,7 @@ details.tree summary .gpv{margin-left:auto}
         <div id="kcOut"></div>
         <label class="check"><input type="checkbox" id="kcUseWeek"> Diese Woche für meine täglichen kcal-Ziele verwenden (statt Laufplan)</label>
         <button class="btn wide" id="kcApply">Als mein Ziel übernehmen</button>
-        <div class="ex-last">Grundumsatz nach Mifflin-St Jeor (mit Körperfett: Katch-McArdle) × Alltagsfaktor. Gym ca. 250 kcal pro Stunde, Laufen ca. 0,9 kcal pro kg und km, sonstiger Sport ca. 4 kcal pro kg und Stunde. Abnehmen: 1 kg Fett ≈ 7.700 kcal. Eiweiß: Abnehmen 2,0 g, sonst 1,8 g pro kg. Nach 2–3 Wochen am Wochentrend der Waage prüfen und anpassen.</div>
+        <div class="ex-last">Grundumsatz nach Mifflin-St Jeor (mit Körperfett: Katch-McArdle) × Alltagsfaktor. Gym ca. 250 kcal pro Stunde, Laufen ca. 0,85 kcal pro kg und km, sonstiger Sport ca. 4 kcal pro kg und Stunde. Abnehmen: 1 kg Fett ≈ 7.700 kcal. Eiweiß: Abnehmen 2,0 g, sonst 1,8 g pro kg. Nach 2–3 Wochen am Wochentrend der Waage prüfen und anpassen.</div>
       </div>
     </details>
   </section>
@@ -1381,13 +1381,17 @@ const DEFAULT_CFG={height:184,age:31,protein:160,deficit:450,activity:1.5,goalKg
 const CFG_RANGE={height:[120,230],age:[14,99],protein:[50,300],deficit:[0,1000],activity:[1.1,2.4],goalKg:[40,200],stepGoal:[1000,40000],surplus:[0,1000],bf:[3,60]};
 const LIMITS={bodyKg:[40,200],runKm:[0.5,60],pace:[150,900],hr:[60,220],restHr:[30,120],gymKg:[0,400],reps:[1,100],kcal:[1,3000],macro:[0,500],macroTol:1.3,steps:[0,100000]};
 const TXT={name:200,note:500,splits:200};
-const GYM_KCAL=250, RUN_KCAL_PER_KG_KM=0.9, REST_KCAL_PER_MIN=1.3, PROTEIN_EVENING=110;
-/** Laufen: kcal = (MET − 1) × kg × Stunden (netto – der Ruheumsatz steckt schon im Grundumsatz).
+const GYM_KCAL=250, RUN_KCAL_PER_KG_KM=0.85, REST_KCAL_PER_MIN=1.3, PROTEIN_EVENING=110;
+/** kcal pro Minute, die der Tagesumsatz (Grundumsatz × Alltag) ohnehin schon zählt – wird von Garmin-kcal abgezogen */
+const restPerMin=kg=>kg>0?Math.min(2,Math.max(1,N(CFG.activity)||1))*kg/60:REST_KCAL_PER_MIN;
+/** Laufen: kcal = (MET − Alltag) × kg × Stunden. Netto über dem, was in der Stunde ohnehin schon im Tagesumsatz steckt:
+    Grundumsatz × Alltagsfaktor (1,5) zählt jede Stunde bereits ca. 1,5 MET mit – die Laufstunde ersetzt diese Zeit.
+    Ergibt ca. 0,85 kcal pro kg und km (Studien: netto 0,85–1,0).
     MET nach Tempo (km/h → MET, Compendium of Physical Activities), hier zentral anpassbar. */
 const MET_RUN=[[6.4,6.0],[8.0,8.3],[8.4,9.0],[9.7,9.8],[10.8,10.5],[11.3,11.0],[12.1,11.5],[12.9,11.8],[13.8,12.3],[14.5,12.8],[16.1,14.5]];
 function metRun(kmh){const T=MET_RUN;kmh=Number(kmh);if(!(kmh>0))return 0;if(kmh<=T[0][0])return T[0][1];
   for(let i=1;i<T.length;i++)if(kmh<=T[i][0]){const [a,ma]=T[i-1],[b,mb]=T[i];return ma+(mb-ma)*(kmh-a)/(b-a)}return T[T.length-1][1]}
-function runKcalNet(km,sec,kg){km=Number(km);sec=Number(sec);kg=Number(kg);if(!(km>0&&sec>0&&kg>0))return 0;const hr=sec/3600;return Math.max(0,(metRun(km/hr)-1)*kg*hr)}
+function runKcalNet(km,sec,kg,base){km=Number(km);sec=Number(sec);kg=Number(kg);base=Number(base)>=1?Number(base):typeof CFG!=="undefined"&&Number(CFG.activity)>1?Math.min(2,Number(CFG.activity)):1;if(!(km>0&&sec>0&&kg>0))return 0;const hr=sec/3600;return Math.max(0,(metRun(km/hr)-base)*kg*hr)}
 
 /* Ziel-Paces in s/km (lo = schnelles Ende, hi = langsames Ende) – Grundwerte für HM 1:58 h.
    applyPaces() skaliert sie: in der HM-Vorbereitung nach der Zielzeit, im Aufbau nach dem letzten 5-km-Test. */
@@ -1858,7 +1862,7 @@ function targetFor(ds){
   const W=future&&useWeek?dayLoad(CFG.week[(parseD(ds).getDay()+6)%7],kg):null;
   let gymK=gymLog?GYM_KCAL:0,runK=0,km=0,otherK=0;const src=[];
   if(!gymLog&&future)gymK=W?W.gymK:d.gym?GYM_KCAL:0;
-  if(runsLog.length)runsLog.forEach(r=>{const rk=N(r.km);km+=rk;runK+=N(r.kcal)?Math.max(0,N(r.kcal)-N(r.sec)/60*REST_KCAL_PER_MIN):runKcalNet(rk,N(r.sec)||rk*runPaceNow(),kg)});
+  if(runsLog.length)runsLog.forEach(r=>{const rk=N(r.km);km+=rk;runK+=N(r.kcal)?Math.max(0,N(r.kcal)-N(r.sec)/60*restPerMin(kg)):runKcalNet(rk,N(r.sec)||rk*runPaceNow(),kg)});
   else if(future){if(W){km=W.km;runK=W.runK}else if(d.run){km=d.run.km;runK=runPlanKcal(km,kg)}}
   if(W)otherK=W.otherK;
   const dS=dailyOn(ds);if(dS&&dS.skipGym&&!gymLog)gymK=0;if(dS&&dS.skipRun&&!runsLog.length){runK=0;km=0}
@@ -2147,7 +2151,7 @@ function renderFood(){
   if(document.activeElement!==$("fGoal"))$("fGoal").value=CFG.goal;
   $("fBasis").textContent="Ziel basiert auf: "+T.src+" · "+fmtNum(T.kg,1)+" kg";
   setHTML($("fCalc"),h`<dt>Grundumsatz × ${fmtNum(CFG.activity,CFG.activity%1?1:0)} (Alltag)</dt><dd>${f0(T.alltag)}</dd>${T.gymK?h`<dt>Gym</dt><dd>+${f0(T.gymK)}</dd>`:""}${T.runK?h`<dt>Laufen ${fmtKm(T.km)} km</dt><dd>+${f0(T.runK)}</dd>`:""}${T.otherK?h`<dt>Sonstiger Sport</dt><dd>+${f0(T.otherK)}</dd>`:""}${T.stepK?h`<dt>Schritte über ${f0(T.stepBase)}${T.stepAssumed?" (angenommen: "+f0(STEP_ASSUMED)+")":""}${T.stepRun?" (ohne ca. "+f0(T.stepRun)+" Laufschritte)":""}</dt><dd>+${f0(T.stepK)}</dd>`:""}${T.def?h`<dt>Defizit</dt><dd>−${f0(T.def)}</dd>`:""}${T.sur?h`<dt>Überschuss (Aufbau)</dt><dd>+${f0(T.sur)}</dd>`:""}${T.adj?h`<dt>Anpassung (echter Verbrauch)</dt><dd>${T.adj>0?"+":"−"}${f0(Math.abs(T.adj))}</dd>`:""}<dt class="sum">Ziel (gerundet)</dt><dd class="sum">${f0(T.total)} kcal</dd>`);
-  $("fCalcTxt").textContent="Grundumsatz (Mifflin, "+CFG.height+" cm, "+CFG.age+" J.) × "+fmtNum(CFG.activity,1)+" für Job und Alltag. Gym ca. "+GYM_KCAL+" kcal. Laufen: deine Garmin-Kalorien abzüglich Ruheumsatz, sonst ca. 0,9 kcal pro kg und km. Eingetragene Einheiten zählen, sonst der Plan (nur heute und künftig). Entscheidend bleibt der Wochentrend auf der Waage.";
+  $("fCalcTxt").textContent="Grundumsatz (Mifflin, "+CFG.height+" cm, "+CFG.age+" J.) × "+fmtNum(CFG.activity,1)+" für Job und Alltag. Gym ca. "+GYM_KCAL+" kcal. Laufen: deine Garmin-Kalorien abzüglich dessen, was die Stunde im Alltag ohnehin verbraucht, sonst ca. 0,85 kcal pro kg und km netto. Eingetragene Einheiten zählen, sonst der Plan (nur heute und künftig). Entscheidend bleibt der Wochentrend auf der Waage.";
   // Wochenleiste (Tag wählen) und Tagebuch
   const mon=monday(ds),maxD=addDays(today(),1);
   setHTML($("fWeek"),[...Array(7)].map((_,i)=>{const d=addDays(mon,i),has=S.meals.some(x=>x.date===d);

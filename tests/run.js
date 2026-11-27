@@ -364,7 +364,7 @@ const daily=(page,ds)=>page.evaluate(d=>(window.__store.daily&&window.__store.da
    ok(perKm>=.75&&perKm<=1.05,'Lauf netto '+Math.round(run.runK)+' kcal = '+perKm.toFixed(2)+' kcal pro kg und km (üblich: 0,75–1,05)');
    // Garmin-kcal vorhanden: brutto minus Ruheumsatz der Laufzeit
    await page.evaluate(async d=>{const r=[...window.__store.runs.keys()][0];await db.doc('runs/'+r).set({date:d,type:'Easy',km:8,sec:3240,kcal:700})},D0);await page.waitForTimeout(300);
-   const g=await T();ok(Math.abs(g.runK-(700-3240/60*1.3))<1,'Garmin-Kalorien: 700 brutto − Ruheumsatz (1,3 kcal/Min.) = '+Math.round(g.runK)+' netto');
+   const g=await T();{const kg=await page.evaluate(()=>kgNow());ok(Math.abs(g.runK-(700-3240/60*1.5*kg/60))<1,'Garmin-Kalorien: 700 brutto − Alltagsumsatz (1,5 × kg pro Std.) = '+Math.round(g.runK)+' netto')}
    await page.evaluate(async d=>{const r=[...window.__store.runs.keys()][0];await db.doc('runs/'+r).set({date:d,type:'Easy',km:8,sec:3240})},D0);await page.waitForTimeout(300);
    // Schritte enthalten die Laufschritte: kein doppeltes Zählen
    await page.evaluate(async d=>{await db.doc('daily/'+d).set({date:d,steps:16000})},D0);await page.waitForTimeout(300);

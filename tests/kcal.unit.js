@@ -3,7 +3,7 @@
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const src=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const pick=re=>{const m=src.match(re);if(!m)throw new Error('nicht gefunden: '+re);return m[0]};
-const code=[pick(/const MET_RUN=\[[^\n]*\];/),pick(/function metRun\(kmh\)\{[\s\S]*?return T\[T\.length-1\]\[1\]\}/),pick(/function runKcalNet\(km,sec,kg\)\{[^\n]*\}/)].join('\n');
+const code=[pick(/const MET_RUN=\[[^\n]*\];/),pick(/function metRun\(kmh\)\{[\s\S]*?return T\[T\.length-1\]\[1\]\}/),pick(/function runKcalNet\(km,sec,kg,base\)\{[^\n]*\}/)].join('\n');
 const ctx={};vm.createContext(ctx);vm.runInContext(code+';this.metRun=metRun;this.runKcalNet=runKcalNet;this.MET_RUN=MET_RUN;',ctx);
 const {metRun,runKcalNet,MET_RUN}=ctx;
 let pass=0,fail=0;const ok=(c,m)=>{c?pass++:fail++;console.log((c?'  ✓ ':'  ✗ ')+m)};
@@ -24,4 +24,8 @@ ok(runKcalNet(10,3600,83)>runKcalNet(5,1800,83)*1.9,'Doppelte Strecke bei gleich
 {const f=runKcalNet(5,1500,83),l=runKcalNet(5,2100,83);ok(Math.abs(f-l)/l<.15,'kcal pro km fast unabhängig vom Tempo (5:00 → '+f.toFixed(0)+', 7:00 → '+l.toFixed(0)+' kcal)')}
 ok(runKcalNet(5,1800,0)===0&&runKcalNet(0,1800,83)===0&&runKcalNet(5,0,83)===0,'Fehlendes Gewicht, km oder Zeit → 0 kcal');
 ok(runKcalNet('5','1800','83')===runKcalNet(5,1800,83),'Zahlen als Text werden akzeptiert');
+console.log('Mit Alltagsfaktor 1,5 (die Laufstunde ersetzt eine Alltagsstunde)');
+{const k=runKcalNet(10,3600,82,1.5);ok(near(k,(metRun(10)-1.5)*82,1e-9),'10 km in 60 Min., 82 kg → '+k.toFixed(0)+' kcal');
+ ok(k/82/10>0.8&&k/82/10<0.9,'≈ '+(k/82/10).toFixed(2)+' kcal pro kg und km (Studien netto 0,85–1,0)');
+ ok(k<runKcalNet(10,3600,82),'Weniger als mit nur Ruheumsatz abgezogen (keine Doppelzählung)')}
 console.log('\n'+pass+'/'+(pass+fail)+' bestanden');process.exitCode=fail?1:0;
